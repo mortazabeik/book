@@ -432,8 +432,23 @@ function ReaderShell() {
           onSelection={handleSelection}
             onPageText={setPageText}
   onTextItems={setPageTextItems}
-  onTextBlocks={setPageBlocks}
-  translatedBlocks={translatedBlocks}
+          onTextBlocks={(blocks) => {
+            setPageBlocks(blocks);
+            setTranslatedBlocks((previous) => {
+              if (!previous) return previous;
+              return blocks.map((block, index) => {
+                const previousBlock = previous[index];
+                return {
+                  ...block,
+                  translation:
+                    previousBlock?.text === block.text
+                      ? previousBlock.translation
+                      : "",
+                };
+              }).filter((block) => block.translation.trim());
+            });
+          }}
+          translatedBlocks={translatedBlocks}
           className={split ? "md:col-span-7 min-h-0 max-md:min-h-0 max-md:flex-[1.2]" : ""}
         />
         {split ? (
