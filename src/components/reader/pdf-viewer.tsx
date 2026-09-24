@@ -221,17 +221,25 @@ export function PdfViewer({
         const style = textContent.styles[item.fontName];
         const [, , , scaleY, x, y] = item.transform;
         const fontSize = Math.max(8, Math.abs(scaleY) * scale);
-        const [left, top, right, bottom] = viewport.convertToViewportRectangle([
-          x,
-          y - (item.height || Math.abs(scaleY)),
-          x + item.width,
-          y,
-        ]);
+        const itemBottom = y - (item.height || Math.abs(scaleY));
+        const itemRight = x + item.width;
+        const points = [
+          viewport.convertToViewportPoint(x, itemBottom),
+          viewport.convertToViewportPoint(itemRight, itemBottom),
+          viewport.convertToViewportPoint(x, y),
+          viewport.convertToViewportPoint(itemRight, y),
+        ];
+        const xs = points.map(([pointX]) => pointX);
+        const ys = points.map(([, pointY]) => pointY);
+        const left = Math.min(...xs);
+        const top = Math.min(...ys);
+        const right = Math.max(...xs);
+        const bottom = Math.max(...ys);
         const rect = {
-          left: Math.min(left, right),
-          top: Math.min(top, bottom),
-          width: Math.abs(right - left),
-          height: Math.max(Math.abs(bottom - top), fontSize * 1.25),
+          left,
+          top,
+          width: right - left,
+          height: Math.max(bottom - top, fontSize * 1.25),
         };
         const signature = `${item.fontName}:${Math.round(fontSize)}:${style?.fontFamily ?? "sans-serif"}`;
         const previous = blocks[blocks.length - 1];
