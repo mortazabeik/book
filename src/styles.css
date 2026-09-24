@@ -29,12 +29,13 @@
   --radius-lg: 16px;
   --font-sans: "Vazirmatn", "Segoe UI", system-ui, sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --header: #08253f;
+  --header: #1688e8;
   --scroll-thumb: color-mix(in srgb, var(--accent) 38%, var(--bg-elevated));
   --scroll-track: color-mix(in srgb, var(--bg) 82%, transparent);
 }
 
 .dark {
+  --header: #08253f;
   --bg: #12110f;
   --bg-elevated: #1c1a17;
   --bg-subtle: #0e0d0c;
@@ -121,7 +122,7 @@
 }
 
 .translation-actions {
-  background: color-mix(in srgb, var(--header) 64%, transparent);
+  background: color-mix(in srgb, var(--header) 58%, transparent);
   backdrop-filter: blur(18px) saturate(150%);
   -webkit-backdrop-filter: blur(18px) saturate(150%);
 }

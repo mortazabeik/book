@@ -1,7 +1,7 @@
 import { i as __toESM } from "../../_runtime.mjs";
 import { n as require_react, t as useComposedRefs } from "./react-compose-refs+[...].mjs";
 import { n as require_jsx_runtime, t as createContextScope } from "../radix-ui__react-context+react.mjs";
-import { c as useControllableState, l as useLayoutEffect2, s as Primitive } from "./react-dialog+[...].mjs";
+import { c as Primitive, l as useControllableState, u as useLayoutEffect2 } from "./react-dialog+[...].mjs";
 import { t as composeEventHandlers } from "../radix-ui__primitive.mjs";
 //#region node_modules/@radix-ui/react-use-size/dist/index.mjs
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);

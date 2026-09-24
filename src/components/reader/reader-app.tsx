@@ -79,6 +79,7 @@ function ReaderShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pending, setPending] = useState<SelectionPayload | null>(null);
   const [showBtn, setShowBtn] = useState(false);
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [btnPos, setBtnPos] = useState({ x: 0, y: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -227,8 +228,9 @@ function ReaderShell() {
 
   const handleSelection = useCallback(
     (payload: SelectionPayload | null) => {
-      if (!payload) {
+      if (!payload || !payload.text.trim()) {
         setShowBtn(false);
+        setPending(null);
         return;
       }
       setFloatCard(null);
@@ -306,7 +308,7 @@ function ReaderShell() {
   return (
     <div className="glass-root flex h-dvh flex-col bg-bg text-fg">
       <div className="glass-backdrop" aria-hidden="true" />
-      <header className="glass-panel flex shrink-0 items-center gap-2 bg-[#08253f] px-2 py-1.5 text-white sm:px-3">
+      <header className="glass-panel flex shrink-0 items-center gap-2 bg-[var(--header)] px-2 py-1.5 text-white sm:px-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <img
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Morio%20book-dark%20mod-YFq92plZKjHgqOzYtNJeFjEFHNHdeQ.png"
@@ -492,6 +494,7 @@ function ReaderShell() {
             aria-label="Copy selected text"
             onClick={async () => {
               await navigator.clipboard.writeText(pending.text);
+              setCopyDialogOpen(true);
             }}
           >
             <Copy className="size-3.5" />
@@ -558,6 +561,17 @@ function ReaderShell() {
           event.target.value = "";
         }}
       />
+
+      <Dialog.Root open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/20 backdrop-blur-[2px]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(90vw,360px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-elevated p-5 text-center text-fg shadow-[var(--shadow-float)] outline-none">
+            <Dialog.Title className="text-base font-semibold">Copied successfully</Dialog.Title>
+            <Dialog.Description className="mt-2 text-sm text-muted">The selected text is now on your clipboard.</Dialog.Description>
+            <Dialog.Close className="mt-4 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-fg">Done</Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       <SettingsDialog
         open={settingsOpen}
