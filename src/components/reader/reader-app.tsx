@@ -95,6 +95,7 @@ function ReaderShell() {
     translation: string;
   } | null>(null);
   const [pageText, setPageText] = useState("");
+  const [pageImage, setPageImage] = useState<{ blob: Blob; width: number; height: number } | null>(null);
   const [pageTextItems, setPageTextItems] = useState<string[]>([]);
   const [translatedPageText, setTranslatedPageText] = useState<string | null>(null);
   const [pageBlocks, setPageBlocks] = useState<TextBlock[]>([]);
@@ -276,11 +277,45 @@ function ReaderShell() {
       setCurrent(null);
       return;
     }
-    if (!pageBlocks.length || pageTranslating) return;
+    if ((!pageBlocks.length && !pageImage) || pageTranslating) return;
     setPageTranslating(true);
     setError(null);
     try {
-      const results = await Promise.all(pageBlocks.map(async (block) => {
+      let blocks = pageBlocks;
+      if (pageImage) {
+        const { PaddleOCR } = await import("@paddleocr/paddleocr-js");
+        const ocr = await PaddleOCR.create({
+          lang: sourceLang === "auto" ? "en" : sourceLang,
+          ocrVersion: "PP-OCRv5",
+          ortOptions: { backend: "auto" },
+        });
+        const [result] = await ocr.predict(pageImage.blob);
+        const ocrBlocks: TextBlock[] = result.items
+          .filter((item) => item.text.trim() && item.score >= 0.35)
+          .map((item) => {
+            const xs = item.poly.map(([x]) => x);
+            const ys = item.poly.map(([, y]) => y);
+            const left = Math.min(...xs);
+            const top = Math.min(...ys);
+            return {
+              text: item.text.trim(),
+              rect: {
+                left,
+                top,
+                width: Math.max(...xs) - left,
+                height: Math.max(...ys) - top,
+              },
+              fontSize: Math.max(10, Math.max(...ys) - top),
+              fontFamily: "Morio Sans",
+              fontWeight: "400",
+              fontStyle: "normal",
+              color: "currentColor",
+            };
+          });
+        if (ocrBlocks.length) blocks = ocrBlocks;
+      }
+      if (!blocks.length) throw new Error("No text was detected on this page.");
+      const results = await Promise.all(blocks.map(async (block) => {
         const res = await translateText({
           data: { text: block.text, sourceLang, targetLang },
         });
@@ -289,8 +324,8 @@ function ReaderShell() {
       }));
       setTranslatedBlocks(results);
       setTranslatedPageText(results.map((block) => block.translation).join("\n\n"));
-      setCurrent({ source: pageBlocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n") });
-      addHistory({ source: pageBlocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n"), sourceLang, targetLang });
+      setCurrent({ source: blocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n") });
+      addHistory({ source: blocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n"), sourceLang, targetLang });
       setSettingsOpen(false);
     } catch {
       setError("Page translation failed. Please try again.");
@@ -494,7 +529,8 @@ function ReaderShell() {
           onSelection={handleSelection}
           pdfDarkMode={pdfDarkMode}
           onPageText={setPageText}
-  onTextItems={setPageTextItems}
+          onPageImage={(blob, size) => setPageImage({ blob, width: size.width, height: size.height })}
+          onTextItems={setPageTextItems}
           onTextBlocks={(blocks) => {
             setPageBlocks(blocks);
             setTranslatedBlocks((previous) => {

@@ -35,6 +35,7 @@ type PdfViewerProps = {
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   onPageText?: (text: string) => void;
+  onPageImage?: (image: Blob, size: { width: number; height: number }) => void;
   onTextItems?: (items: string[]) => void;
   onTextBlocks?: (blocks: TextBlock[]) => void;
   translatedBlocks?: Array<TextBlock & { translation: string }> | null;
@@ -50,6 +51,7 @@ export function PdfViewer({
   onNumPages,
   onSelection,
   onPageText,
+  onPageImage,
   onTextItems,
   onTextBlocks,
   translatedBlocks,
@@ -203,6 +205,9 @@ export function PdfViewer({
         return;
       }
       if (cancelled) return;
+
+      const imageBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (imageBlob) onPageImage?.(imageBlob, { width: viewport.width, height: viewport.height });
 
       const textContent = await pdfPage.getTextContent();
       if (cancelled) return;
