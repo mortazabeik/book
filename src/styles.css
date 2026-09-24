@@ -29,6 +29,9 @@
   --radius-lg: 16px;
   --font-sans: "Vazirmatn", "Segoe UI", system-ui, sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --header: #08253f;
+  --scroll-thumb: color-mix(in srgb, var(--accent) 38%, var(--bg-elevated));
+  --scroll-track: color-mix(in srgb, var(--bg) 82%, transparent);
 }
 
 .dark {
@@ -85,10 +88,50 @@
     linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--bg-subtle) 78%, var(--accent)));
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--scroll-thumb);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 58%, var(--bg-elevated));
+  background-clip: padding-box;
+}
+
 .glass-panel {
   background: color-mix(in srgb, var(--bg-elevated) 48%, transparent);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+.translation-actions {
+  background: color-mix(in srgb, var(--header) 64%, transparent);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+.translation-action {
+  color: #fff;
+}
+
+.translation-action:hover {
+  background: rgba(255, 255, 255, 0.16);
 }
 
 @layer base {

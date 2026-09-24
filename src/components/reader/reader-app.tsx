@@ -475,12 +475,12 @@ function ReaderShell() {
       {showBtn && pending ? (
         <div
           data-translation-ui=""
-          className="fixed z-40 flex h-10 items-center gap-1 rounded-full border border-white/20 bg-[#08253f] p-1 text-sm font-medium text-white shadow-[var(--shadow-float)]"
+          className="translation-actions fixed z-40 flex h-10 items-center gap-1 rounded-full border border-white/20 p-1 text-sm font-medium text-white shadow-[var(--shadow-float)]"
           style={{ left: btnPos.x, top: btnPos.y }}
         >
           <button
             type="button"
-            className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-accent-fg/15"
+            className="translation-action flex size-8 items-center justify-center rounded-full transition-colors"
             aria-label="Translate selected text"
             onClick={() => void runTranslate(pending)}
           >
@@ -488,7 +488,7 @@ function ReaderShell() {
           </button>
           <button
             type="button"
-            className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-accent-fg/15"
+            className="translation-action flex size-8 items-center justify-center rounded-full transition-colors"
             aria-label="Copy selected text"
             onClick={async () => {
               await navigator.clipboard.writeText(pending.text);
@@ -850,7 +850,7 @@ function FieldSelect({
         <ChevronDown className={cn("size-4 text-subtle transition-transform", open && "rotate-180")} />
       </button>
       {open ? (
-        <div className="absolute inset-x-0 top-full z-50 mt-2 max-h-60 overflow-auto rounded-xl border border-border bg-elevated p-1.5 shadow-[var(--shadow-float)]" role="listbox">
+        <div className="absolute inset-x-0 top-full z-50 mt-2 max-h-60 overflow-auto rounded-xl border border-border bg-elevated/75 p-1.5 shadow-[var(--shadow-float)] backdrop-blur-xl" role="listbox">
           {options.map((option) => (
             <button
               key={option.code}
