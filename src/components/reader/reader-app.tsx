@@ -256,12 +256,23 @@ function ReaderShell() {
   }
 
   async function translateWholePage() {
+    if (translatedPageText) {
+      setTranslatedPageText(null);
+      setCurrent(null);
+      return;
+    }
     if (!pageTextItems.length || pageTranslating) return;
     setPageTranslating(true);
     setError(null);
     try {
       const res = await translateText({
-        data: { text: pageText, sourceLang, targetLang },
+        data: {
+          // Keep the PDF's text flow intact. The service receives one page,
+          // not individual text-layer lines, so a sentence is never split per line.
+          text: pageText,
+          sourceLang,
+          targetLang,
+        },
       });
       if (!res.ok) {
         setError(res.error);
@@ -356,11 +367,17 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="ترجمه کل صفحه"
-            disabled={pageTranslating || !pageTextItems.length}
+            aria-label={translatedPageText ? "بازگشت به حالت عادی" : "ترجمه کل صفحه"}
+            disabled={pageTranslating || (!translatedPageText && !pageTextItems.length)}
             onClick={() => void translateWholePage()}
           >
-            {pageTranslating ? <LoaderCircle className="size-4 animate-spin" /> : <Languages className="size-4" />}
+            {pageTranslating ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : translatedPageText ? (
+              <RotateCcw className="size-4" />
+            ) : (
+              <Languages className="size-4" />
+            )}
           </Button>
           <Button
             variant="ghost"

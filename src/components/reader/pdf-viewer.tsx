@@ -321,10 +321,12 @@ export function PdfViewer({
           }}
         >
           <canvas ref={canvasRef} className="pdf-canvas block h-full w-full" />
-          <div ref={textLayerRef} className={cn("textLayer", translatedText && "opacity-0")} />
+          <div ref={textLayerRef} className={cn("textLayer", translatedText && "translated-source-hidden")} />
           {translatedText ? (
             <div className="translated-page-overlay" dir="auto" aria-label="ترجمه صفحه">
-              {translatedText}
+              {translatedText.split(/\n\s*\n/).map((paragraph, index) => (
+                <p key={`${index}-${paragraph.slice(0, 12)}`}>{paragraph}</p>
+              ))}
             </div>
           ) : null}
           {status === "loading" ? (
