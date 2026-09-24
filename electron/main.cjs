@@ -1,13 +1,18 @@
 const { app, BrowserWindow, shell } = require("electron");
 const path = require("node:path");
+const { startServer } = require("./server.cjs");
+
+let localServer;
 
 const startUrl = process.env.ELECTRON_START_URL || "http://localhost:8080";
 
-function loadApplication(window) {
+async function loadApplication(window) {
   if (app.isPackaged) {
-    void window.loadFile(path.join(process.resourcesPath, "app.asar", ".vercel", "output", "static", "index.html"));
+    const root = path.join(process.resourcesPath, "app.asar");
+    localServer = await startServer(root);
+    await window.loadURL(`http://127.0.0.1:${localServer.port}/`);
   } else {
-    void window.loadURL(startUrl);
+    await window.loadURL(startUrl);
   }
 }
 
@@ -34,7 +39,10 @@ function createWindow() {
     }
     return { action: "deny" };
   });
-  loadApplication(window);
+  void loadApplication(window).catch((error) => {
+    console.error("Failed to load Morio Book:", error);
+    void window.loadURL(`data:text/plain,${encodeURIComponent(String(error))}`);
+  });
 }
 
 app.whenReady().then(() => {
