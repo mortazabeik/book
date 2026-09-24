@@ -32,7 +32,6 @@ import {
   useSettings,
 } from "@/lib/store";
 import { translateText } from "@/lib/translate";
-import { detectDocumentRegions } from "@/lib/doclayout";
 import { cn } from "@/lib/utils";
 import {
   PdfViewer,
@@ -96,13 +95,6 @@ function ReaderShell() {
     translation: string;
   } | null>(null);
   const [pageText, setPageText] = useState("");
-  const [pageImage, setPageImage] = useState<{
-    blob: Blob;
-    width: number;
-    height: number;
-    pixelWidth: number;
-    pixelHeight: number;
-  } | null>(null);
   const [pageTextItems, setPageTextItems] = useState<string[]>([]);
   const [translatedPageText, setTranslatedPageText] = useState<string | null>(null);
   const [pageBlocks, setPageBlocks] = useState<TextBlock[]>([]);
@@ -284,80 +276,11 @@ function ReaderShell() {
       setCurrent(null);
       return;
     }
-    if ((!pageBlocks.length && !pageImage) || pageTranslating) return;
+    if (!pageBlocks.length || pageTranslating) return;
     setPageTranslating(true);
     setError(null);
     try {
-      let blocks = pageBlocks;
-      if (pageImage) {
-        const { PaddleOCR } = await import("@paddleocr/paddleocr-js");
-        const ocr = await PaddleOCR.create({
-          lang: sourceLang === "auto" ? "en" : sourceLang,
-          ocrVersion: "PP-OCRv5",
-          ortOptions: { backend: "auto" },
-        });
-        const [result] = await ocr.predict(pageImage.blob);
-        const scaleX = pageImage.width / pageImage.pixelWidth;
-        const scaleY = pageImage.height / pageImage.pixelHeight;
-        const lines = result.items
-          .filter((item) => item.text.trim() && item.score >= 0.35)
-          .map((item) => {
-            const xs = item.poly.map(([x]) => x * scaleX);
-            const ys = item.poly.map(([, y]) => y * scaleY);
-            return {
-              text: item.text.trim(),
-              left: Math.min(...xs),
-              top: Math.min(...ys),
-              right: Math.max(...xs),
-              bottom: Math.max(...ys),
-            };
-          })
-          .sort((a, b) => a.top - b.top || a.left - b.left);
-        const paragraphLines: typeof lines[] = [];
-        for (const line of lines) {
-          const previous = paragraphLines.at(-1);
-          const previousBottom = previous?.at(-1)?.bottom ?? -Infinity;
-          const previousTop = previous?.at(-1)?.top ?? line.top;
-          const lineHeight = line.bottom - line.top;
-          if (!previous || line.top - previousBottom > lineHeight * 1.8 || line.top - previousTop > lineHeight * 3.2) paragraphLines.push([line]);
-          else previous.push(line);
-        }
-        const bitmap = await createImageBitmap(pageImage.blob);
-        const layoutRegions = await detectDocumentRegions(pageImage.blob).catch(() => []);
-        const paragraphRegions = layoutRegions.filter((region) =>
-          ["text", "content", "abstract", "paragraph_title", "reference", "footnote", "header", "footer"].includes(region.label),
-        );
-        const regionsToOcr = paragraphRegions.length
-          ? paragraphRegions.map((region) => [{
-              text: "",
-              left: region.left * scaleX,
-              top: region.top * scaleY,
-              right: region.right * scaleX,
-              bottom: region.bottom * scaleY,
-            }])
-          : paragraphLines;
-        const ocrBlocks: TextBlock[] = await Promise.all(regionsToOcr.map(async (paragraph) => {
-          const left = Math.max(0, Math.floor(Math.min(...paragraph.map((line) => line.left)) / scaleX));
-          const top = Math.max(0, Math.floor(Math.min(...paragraph.map((line) => line.top)) / scaleY));
-          const right = Math.min(pageImage.pixelWidth, Math.ceil(Math.max(...paragraph.map((line) => line.right)) / scaleX));
-          const bottom = Math.min(pageImage.pixelHeight, Math.ceil(Math.max(...paragraph.map((line) => line.bottom)) / scaleY));
-          const crop = document.createElement("canvas");
-          crop.width = Math.max(1, right - left);
-          crop.height = Math.max(1, bottom - top);
-          crop.getContext("2d")?.drawImage(bitmap, left, top, crop.width, crop.height, 0, 0, crop.width, crop.height);
-          const cropBlob = await new Promise<Blob | null>((resolve) => crop.toBlob(resolve, "image/png"));
-          const cropResult = cropBlob ? await ocr.predict(cropBlob) : [];
-          const recognized = cropResult[0]?.items.filter((item) => item.text.trim() && item.score >= 0.35).map((item) => item.text.trim()).join(" ");
-          return {
-            text: recognized || paragraph.map((line) => line.text).join(" "),
-            rect: { left: left * scaleX, top: top * scaleY, width: (right - left) * scaleX, height: (bottom - top) * scaleY },
-            fontSize: Math.max(10, (bottom - top) / Math.max(paragraph.length, 1)),
-            fontFamily: "Morio Sans", fontWeight: "400", fontStyle: "normal", color: "currentColor",
-          };
-        }));
-        bitmap.close();
-        if (ocrBlocks.length) blocks = ocrBlocks;
-      }
+      const blocks = pageBlocks;
       if (!blocks.length) throw new Error("No text was detected on this page.");
       const results = await Promise.all(blocks.map(async (block) => {
         const res = await translateText({
@@ -499,7 +422,7 @@ function ReaderShell() {
             variant="ghost"
             size="icon-sm"
             aria-label={translatedBlocks ? "Restore original" : "Translate page"}
-            disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length && !pageImage)}
+            disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)}
             onClick={() => void translateWholePage()}
           >
             {pageTranslating ? (
@@ -574,7 +497,6 @@ function ReaderShell() {
           onSelection={handleSelection}
           pdfDarkMode={pdfDarkMode}
           onPageText={setPageText}
-          onPageImage={(blob, size) => setPageImage({ blob, ...size })}
           onTextItems={setPageTextItems}
           onTextBlocks={(blocks) => {
             setPageBlocks(blocks);

@@ -35,7 +35,6 @@ type PdfViewerProps = {
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   onPageText?: (text: string) => void;
-  onPageImage?: (image: Blob, size: { width: number; height: number; pixelWidth: number; pixelHeight: number }) => void;
   onTextItems?: (items: string[]) => void;
   onTextBlocks?: (blocks: TextBlock[]) => void;
   translatedBlocks?: Array<TextBlock & { translation: string }> | null;
@@ -51,7 +50,6 @@ export function PdfViewer({
   onNumPages,
   onSelection,
   onPageText,
-  onPageImage,
   onTextItems,
   onTextBlocks,
   translatedBlocks,
@@ -66,12 +64,10 @@ export function PdfViewer({
   const onNumPagesRef = useRef(onNumPages);
   const onSelectionRef = useRef(onSelection);
   const onPageTextRef = useRef(onPageText);
-  const onPageImageRef = useRef(onPageImage);
   const onTextItemsRef = useRef(onTextItems);
   onNumPagesRef.current = onNumPages;
   onSelectionRef.current = onSelection;
   onPageTextRef.current = onPageText;
-  onPageImageRef.current = onPageImage;
   onTextItemsRef.current = onTextItems;
   const onTextBlocksRef = useRef(onTextBlocks);
   onTextBlocksRef.current = onTextBlocks;
@@ -207,14 +203,6 @@ export function PdfViewer({
         return;
       }
       if (cancelled) return;
-
-      const imageBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-      if (imageBlob) onPageImageRef.current?.(imageBlob, {
-        width: viewport.width,
-        height: viewport.height,
-        pixelWidth: canvas.width,
-        pixelHeight: canvas.height,
-      });
 
       const textContent = await pdfPage.getTextContent();
       if (cancelled) return;
