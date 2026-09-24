@@ -264,22 +264,34 @@ export function PdfViewer({
     });
     if (!matches.length) return;
 
-    // Replace the text nodes in the existing PDF.js spans so their positioning,
-    // font, and other text-layer tags remain intact instead of covering them.
-    const originalLengths = matches.map((span) => span.textContent?.length ?? 0);
-    const totalLength = originalLengths.reduce((sum, length) => sum + length, 0) || matches.length;
+    // Update only existing text nodes. This keeps every PDF.js element/tag and
+    // its positioning intact instead of replacing the selected content with a cover layer.
+    const textNodes = matches.flatMap((element) => {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      const nodes: Text[] = [];
+      let node = walker.nextNode();
+      while (node) {
+        if (node.textContent) nodes.push(node as Text);
+        node = walker.nextNode();
+      }
+      return nodes;
+    });
+    const originalLengths = textNodes.map((node) => node.data.length);
+    const totalLength = originalLengths.reduce((sum, length) => sum + length, 0) || textNodes.length;
     let previousEnd = 0;
-    matches.forEach((span, index) => {
-      const isLast = index === matches.length - 1;
+    textNodes.forEach((node, index) => {
+      const isLast = index === textNodes.length - 1;
       const end = isLast
         ? replaceText.length
         : Math.round(previousEnd + (replaceText.length * (originalLengths[index] || 1)) / totalLength);
-      span.textContent = replaceText.slice(previousEnd, end);
-      span.dir = "auto";
-      span.style.whiteSpace = "pre-wrap";
-      span.style.color = "var(--fg)";
-      span.style.zIndex = "2";
+      node.data = replaceText.slice(previousEnd, end);
       previousEnd = end;
+    });
+    matches.forEach((element) => {
+      element.dir = "auto";
+      element.style.whiteSpace = "pre-wrap";
+      element.style.color = "var(--fg)";
+      element.style.zIndex = "2";
     });
   }, [replaceText, replaceRects, pageSize]);
 
