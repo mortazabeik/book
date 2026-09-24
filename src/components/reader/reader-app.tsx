@@ -378,19 +378,6 @@ function ReaderShell() {
         </div>
 
         <div className="ms-auto flex shrink-0 items-center gap-0.5">
-          {desktopControls?.isDesktop && desktopControls.windowControls ? (
-            <div className="electron-window-controls ms-2 flex items-center gap-0.5 border-s border-white/15 ps-2">
-              <button type="button" className="electron-window-button" aria-label="Minimize window" onClick={desktopControls.windowControls.minimize}>
-                <Minimize2 className="size-3.5" />
-              </button>
-              <button type="button" className="electron-window-button" aria-label="Toggle fullscreen" onClick={desktopControls.windowControls.toggleMaximize}>
-                <Maximize2 className="size-3.5" />
-              </button>
-              <button type="button" className="electron-window-button electron-window-close" aria-label="Close window" onClick={desktopControls.windowControls.close}>
-                <X className="size-3.5" />
-              </button>
-            </div>
-          ) : null}
           <Button
             variant="ghost"
             size="icon-sm"
@@ -456,6 +443,19 @@ function ReaderShell() {
             <Settings2 className="size-4" />
           </Button>
         </div>
+        {desktopControls?.isDesktop && desktopControls.windowControls ? (
+          <div className="electron-window-controls ms-2 flex shrink-0 items-center gap-0.5 border-s border-white/15 ps-2">
+            <button type="button" className="electron-window-button" aria-label="Minimize window" onClick={desktopControls.windowControls.minimize}>
+              <Minimize2 className="size-3.5" />
+            </button>
+            <button type="button" className="electron-window-button" aria-label="Toggle fullscreen" onClick={desktopControls.windowControls.toggleMaximize}>
+              <Maximize2 className="size-3.5" />
+            </button>
+            <button type="button" className="electron-window-button electron-window-close" aria-label="Close window" onClick={desktopControls.windowControls.close}>
+              <X className="size-3.5" />
+            </button>
+          </div>
+        ) : null}
       </header>
 
       <div
