@@ -879,7 +879,7 @@ function FieldSelect({
         <ChevronDown className={cn("size-4 text-subtle transition-transform", open && "rotate-180")} />
       </button>
       {open ? (
-        <div className="language-options absolute inset-x-0 top-full z-50 mt-2 max-h-60 overflow-auto rounded-xl p-0" role="listbox">
+        <div className="language-options absolute inset-x-0 top-full z-50 mt-2 max-h-60 overflow-auto rounded-xl p-1.5" role="listbox">
           {options.map((option) => (
             <button
               key={option.code}
