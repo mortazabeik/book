@@ -48,7 +48,7 @@ export function ReaderApp() {
   if (!mounted) {
     return (
       <div className="flex h-dvh items-center justify-center bg-bg text-sm text-muted">
-        در حال آماده‌سازی خواننده…
+        Preparing reader…
       </div>
     );
   }
@@ -215,7 +215,7 @@ function ReaderShell() {
         }
         window.getSelection()?.removeAllRanges();
       } catch {
-        setError("خطا در ترجمه. دوباره تلاش کنید.");
+        setError("Translation failed. Please try again.");
       } finally {
         setLoading(false);
         translatingFor.current = null;
@@ -292,7 +292,7 @@ function ReaderShell() {
       addHistory({ source: pageBlocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n"), sourceLang, targetLang });
       setSettingsOpen(false);
     } catch {
-      setError("خطا در ترجمه صفحه. دوباره تلاش کنید.");
+      setError("Page translation failed. Please try again.");
     } finally {
       setPageTranslating(false);
     }
@@ -310,7 +310,7 @@ function ReaderShell() {
           <img
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Morio%20book-dark%20mod-YFq92plZKjHgqOzYtNJeFjEFHNHdeQ.png"
             alt="Morio Book"
-            className="h-9 w-auto max-w-36 object-contain"
+            className="h-9 w-auto max-w-36 rounded-md bg-[#08253f] px-2 py-1 object-contain shadow-sm"
           />
           <div className="min-w-0">
             <p className="truncate text-sm font-medium leading-tight">Morio Book</p>
@@ -342,7 +342,7 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="صفحه بعد"
+            aria-label="Next page"
             disabled={!canNext}
             onClick={() => {
               setPage(page + 1);
@@ -357,19 +357,19 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="کوچک‌نمایی"
+            aria-label="Zoom out"
             className="hidden sm:inline-flex"
             onClick={() => setZoom(zoom - 0.1)}
           >
             <Minus className="size-4" />
           </Button>
           <span className="hidden min-w-10 text-center text-[11px] tabular-nums text-muted sm:inline">
-            {Math.round(zoom * 100)}٪
+            {Math.round(zoom * 100)}%
           </span>
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="بزرگ‌نمایی"
+            aria-label="Zoom in"
             className="hidden sm:inline-flex"
             onClick={() => setZoom(zoom + 0.1)}
           >
@@ -378,7 +378,7 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label={translatedBlocks ? "بازگشت به حالت عادی" : "ترجمه کل صفحه"}
+            aria-label={translatedBlocks ? "Restore original" : "Translate page"}
             disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)}
             onClick={() => void translateWholePage()}
           >
@@ -393,7 +393,7 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="باز کردن PDF دیگر"
+            aria-label="Open another PDF"
             onClick={() => fileRef.current?.click()}
           >
             <FileUp className="size-4" />
@@ -401,7 +401,7 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label={theme === "dark" ? "حالت روشن" : "حالت تاریک"}
+            aria-label={theme === "dark" ? "Light mode" : "Dark mode"}
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
@@ -413,7 +413,7 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="تنظیمات"
+            aria-label="Settings"
             onClick={() => setSettingsOpen(true)}
           >
             <Settings2 className="size-4" />
@@ -505,7 +505,7 @@ function ReaderShell() {
           }}
         >
           <LoaderCircle className="size-3.5 animate-spin" />
-          در حال ترجمه…
+          Translating…
         </div>
       ) : null}
 
@@ -520,11 +520,11 @@ function ReaderShell() {
           dir="auto"
         >
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-medium text-muted">ترجمه</p>
+            <p className="text-[11px] font-medium text-muted">Translation</p>
             <button
               type="button"
               className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-fg/6 hover:text-fg"
-              aria-label="بستن"
+              aria-label="Close"
               onClick={dismissTransient}
             >
               <X className="size-3.5" />
@@ -591,14 +591,14 @@ function TranslatePanel({
     >
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
         <div>
-          <p className="text-sm font-medium">ترجمه</p>
-          <p className="text-[11px] text-subtle">متن انتخاب‌شده در کتاب</p>
+          <p className="text-sm font-medium">Translation</p>
+          <p className="text-[11px] text-subtle">Selected text from the book</p>
         </div>
         {visible ? (
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="رونوشت"
+            aria-label="Copy translation"
             onClick={async () => {
               await navigator.clipboard.writeText(visible.translation);
               setCopied(true);
@@ -613,14 +613,14 @@ function TranslatePanel({
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted">
             <LoaderCircle className="size-4 animate-spin" />
-            در حال ترجمه…
+            Translating…
           </div>
         ) : error ? (
           <p className="text-sm text-muted">{error}</p>
         ) : visible ? (
           <div className="space-y-4">
             <section>
-              <p className="mb-1.5 text-[11px] font-medium text-subtle">اصل</p>
+              <p className="mb-1.5 text-[11px] font-medium text-subtle">Original</p>
               <p
                 dir="auto"
                 className="text-pretty text-sm leading-relaxed text-muted"
@@ -629,7 +629,7 @@ function TranslatePanel({
               </p>
             </section>
             <section>
-              <p className="mb-1.5 text-[11px] font-medium text-subtle">ترجمه</p>
+              <p className="mb-1.5 text-[11px] font-medium text-subtle">Translation</p>
               <p dir="auto" className="text-pretty text-base leading-relaxed">
                 {visible.translation}
               </p>
@@ -637,8 +637,7 @@ function TranslatePanel({
           </div>
         ) : (
           <p className="text-sm leading-relaxed text-muted">
-            متنی را در صفحه کتاب انتخاب کنید. دکمه ترجمه کنار نشانگر ظاهر
-            می‌شود.
+            Select text on the page. The Translation button will appear next to your selection.
           </p>
         )}
       </div>
@@ -680,24 +679,24 @@ function SettingsDialog({
           className="fixed start-0 top-0 z-50 flex h-dvh w-full max-w-md flex-col bg-elevated shadow-[var(--shadow-float)] outline-none"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <Dialog.Title className="text-sm font-medium">تنظیمات</Dialog.Title>
+            <Dialog.Title className="text-sm font-medium">Settings</Dialog.Title>
             <Dialog.Close asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="بستن">
+              <Button variant="ghost" size="icon-sm" aria-label="Close">
                 <X className="size-4" />
               </Button>
             </Dialog.Close>
           </div>
           <div className="min-h-0 flex-1 space-y-6 overflow-auto p-4">
             <section className="space-y-3">
-              <h3 className="text-xs font-medium text-muted">زبان</h3>
+              <h3 className="text-xs font-medium text-muted">Language</h3>
               <FieldSelect
-                label="زبان مبدأ"
+                label="Source language"
                 value={sourceLang}
                 onChange={setSourceLang}
                 options={SOURCE_LANGUAGES}
               />
               <FieldSelect
-                label="زبان مقصد"
+                label="Target language"
                 value={targetLang}
                 onChange={setTargetLang}
                 options={TARGET_LANGUAGES}
@@ -705,18 +704,18 @@ function SettingsDialog({
             </section>
 
             <section className="space-y-3">
-              <h3 className="text-xs font-medium text-muted">حالت ترجمه</h3>
+              <h3 className="text-xs font-medium text-muted">Translation mode</h3>
               <div className="grid gap-2">
                 <ModeCard
                   active={mode === "split"}
-                  title="تقسیم ۷۰ / ۳۰"
-                  body="کتاب در سمت بزرگ‌تر، ترجمه در پنل کناری."
+                  title="70 / 30 split"
+                  body="Book on the larger side, translation in the side panel."
                   onClick={() => setMode("split")}
                 />
                 <ModeCard
                   active={mode === "float"}
-                  title="شناور"
-                  body="ترجمه در پنجره‌ای کوچک کنار انتخاب ظاهر می‌شود."
+                  title="Floating"
+                  body="Translation appears in a small window beside the selection."
                   onClick={() => setMode("float")}
                 />
               </div>
@@ -725,21 +724,21 @@ function SettingsDialog({
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3 rounded-xl bg-bg px-3 py-3 shadow-[var(--shadow-border)]">
                 <div>
-                  <p className="text-sm font-medium">ترجمه خودکار</p>
+                  <p className="text-sm font-medium">Auto-translate</p>
                   <p className="text-[11px] text-subtle">
-                    پس از تمام شدن انتخاب، بدون دکمه ترجمه شود.
+                    Translate automatically after a selection is completed.
                   </p>
                 </div>
                 <Switch
                   checked={autoTranslate}
                   onCheckedChange={setAutoTranslate}
-                  aria-label="ترجمه خودکار"
+                  aria-label="Auto-translate"
                 />
               </div>
               <div className="flex items-center justify-between gap-3 rounded-xl bg-bg px-3 py-3 shadow-[var(--shadow-border)]">
                 <div>
-                  <p className="text-sm font-medium">ظاهر</p>
-                  <p className="text-[11px] text-subtle">روشن برای کاغذ، تاریک برای شب</p>
+                  <p className="text-sm font-medium">Appearance</p>
+                  <p className="text-[11px] text-subtle">Light for paper, dark for night.</p>
                 </div>
                 <div className="flex rounded-lg bg-elevated p-0.5 shadow-[var(--shadow-border)]">
                   <ThemeChip
@@ -758,7 +757,7 @@ function SettingsDialog({
                     active={theme === "dark"}
                     onClick={() => setTheme("dark")}
                     icon={<Moon className="size-3.5" />}
-                    label="تاریک"
+                    label="Dark"
                   />
                 </div>
               </div>
@@ -770,7 +769,7 @@ function SettingsDialog({
                 <Switch checked={pdfDarkMode} onCheckedChange={setPdfDarkMode} aria-label="Dark PDF mode" />
               </div>
               <div className="flex items-center justify-between gap-3 rounded-xl bg-bg px-3 py-3 shadow-[var(--shadow-border)] sm:hidden">
-                <p className="text-sm font-medium">اندازه صفحه</p>
+                <p className="text-sm font-medium">Page size</p>
                 <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
@@ -781,13 +780,13 @@ function SettingsDialog({
                     <Minus className="size-4" />
                   </Button>
                   <span className="min-w-10 text-center text-xs tabular-nums text-muted">
-                    {Math.round(zoom * 100)}٪
+                    {Math.round(zoom * 100)}%
                   </span>
                   <Button
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setZoom(zoom + 0.1)}
-                    aria-label="بزرگ‌نمایی"
+                    aria-label="Zoom in"
                   >
                     <Plus className="size-4" />
                   </Button>
@@ -796,7 +795,7 @@ function SettingsDialog({
             </section>
 
             <section className="space-y-2">
-              <h3 className="text-xs font-medium text-muted">فایل</h3>
+              <h3 className="text-xs font-medium text-muted">File</h3>
               {pdfSource === "upload" ? (
                 <Button
                   variant="ghost"
@@ -804,11 +803,11 @@ function SettingsDialog({
                   onClick={onRestorePdf}
                 >
                   <RotateCcw className="size-4" />
-                  بازگشت به book.pdf
+                  Restore book.pdf
                 </Button>
               ) : (
                 <p className="px-1 text-[11px] text-subtle">
-                  فایل پیش‌فرض book.pdf از حافظه همین برنامه خوانده می‌شود.
+                  The default book.pdf is loaded from this app's storage.
                 </p>
               )}
             </section>

@@ -124,7 +124,7 @@ export function PdfViewer({
       } catch {
         if (cancelled) return;
         setStatus("error");
-        setError("نتوانستیم این فایل را باز کنیم");
+        setError("We could not open this file");
       }
     }
 
@@ -151,7 +151,7 @@ export function PdfViewer({
       } catch {
         if (!cancelled) {
           setStatus("error");
-          setError("این صفحه در دسترس نیست");
+          setError("This page is unavailable");
         }
         return;
       }
@@ -199,7 +199,7 @@ export function PdfViewer({
         const name = err instanceof Error ? err.name : "";
         if (name === "RenderingCancelledException" || cancelled) return;
         setStatus("error");
-        setError("رسم صفحه با خطا روبه‌رو شد");
+        setError("The page could not be rendered");
         return;
       }
       if (cancelled) return;
@@ -390,7 +390,7 @@ export function PdfViewer({
               key={`${index}-${block.text.slice(0, 12)}`}
               className="translated-block"
               dir="auto"
-              aria-label="ترجمه پاراگراف"
+              aria-label="Translated paragraph"
               style={{
                 left: block.rect.left,
                 top: block.rect.top,
@@ -407,7 +407,7 @@ export function PdfViewer({
           ))}
           {status === "loading" ? (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/80 text-sm text-muted">
-              در حال گشودن صفحه…
+              Opening page…
             </div>
           ) : null}
           {status === "error" ? (
