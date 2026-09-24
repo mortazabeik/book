@@ -33,7 +33,6 @@ import { translateText } from "@/lib/translate";
 import { cn } from "@/lib/utils";
 import {
   PdfViewer,
-  type OverlayRect,
   type SelectionPayload,
 } from "./pdf-viewer";
 
@@ -84,10 +83,7 @@ function ReaderShell() {
     source: string;
     translation: string;
   } | null>(null);
-  const [replace, setReplace] = useState<{
-    text: string;
-    rects: OverlayRect[];
-  } | null>(null);
+  const [pageTranslation, setPageTranslation] = useState<string | null>(null);
   const [floatCard, setFloatCard] = useState<{
     x: number;
     y: number;
@@ -124,7 +120,6 @@ function ReaderShell() {
 
   const dismissTransient = useCallback(() => {
     setShowBtn(false);
-    setReplace(null);
     setFloatCard(null);
     setPending(null);
   }, []);
@@ -193,10 +188,7 @@ function ReaderShell() {
           sourceLang,
           targetLang,
         });
-        if (mode === "replace") {
-          setReplace({ text: res.text, rects: payload.rects });
-          setFloatCard(null);
-        } else if (mode === "float") {
+        if (mode === "float") {
           setFloatCard({
             x: payload.mouseX,
             y: payload.mouseY,
@@ -250,6 +242,18 @@ function ReaderShell() {
     setCurrent(null);
     dismissTransient();
   }
+
+  const translatePage = useCallback(
+    async (text: string) => {
+      setLoading(true);
+      setError(null);
+      const res = await translateText({ data: { text, sourceLang, targetLang } });
+      if (res.ok) setPageTranslation(res.text);
+      else setError(res.error);
+      setLoading(false);
+    },
+    [sourceLang, targetLang],
+  );
 
   async function restoreDefaultPdf() {
     await clearUploadedPdf();
@@ -337,6 +341,18 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="ترجمه کل صفحه"
+            disabled={loading}
+            onClick={() => {
+              const text = document.querySelector(".pdf-page .textLayer")?.textContent?.trim();
+              if (text) void translatePage(text);
+            }}
+          >
+            <Languages className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             aria-label="باز کردن PDF دیگر"
             onClick={() => fileRef.current?.click()}
           >
@@ -378,8 +394,7 @@ function ReaderShell() {
           page={Math.min(page, numPages)}
           zoom={zoom}
           onZoomChange={setZoom}
-          replaceText={replace?.text ?? null}
-          replaceRects={replace?.rects ?? null}
+          translatedText={pageTranslation}
           onNumPages={(n) => {
             setNumPages(n);
             if (page > n) setPage(n);
@@ -626,12 +641,6 @@ function SettingsDialog({
                   title="تقسیم ۷۰ / ۳۰"
                   body="کتاب در سمت بزرگ‌تر، ترجمه در پنل کناری."
                   onClick={() => setMode("split")}
-                />
-                <ModeCard
-                  active={mode === "replace"}
-                  title="جایگزینی"
-                  body="متن ترجمه‌شده روی همان سطر می‌نشیند تا وقتی جای دیگری کلیک کنید."
-                  onClick={() => setMode("replace")}
                 />
                 <ModeCard
                   active={mode === "float"}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type WheelEvent } from "react";
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from "pdfjs-dist";
 import { cn } from "@/lib/utils";
 
@@ -21,8 +21,7 @@ type PdfViewerProps = {
   page: number;
   zoom: number;
   onZoomChange: (zoom: number) => void;
-  replaceText: string | null;
-  replaceRects: OverlayRect[] | null;
+  translatedText: string | null;
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   className?: string;
@@ -33,8 +32,7 @@ export function PdfViewer({
   page,
   zoom,
   onZoomChange,
-  replaceText,
-  replaceRects,
+  translatedText,
   onNumPages,
   onSelection,
   className,
@@ -243,62 +241,68 @@ export function PdfViewer({
 
   useEffect(() => {
     const layer = textLayerRef.current;
-    if (!layer || !replaceText || !replaceRects?.length) return;
-    const pageBox = pageRef.current?.getBoundingClientRect();
-    if (!pageBox) return;
-    const selected = replaceRects.map((rect) => ({
-      left: pageBox.left + rect.left,
-      top: pageBox.top + rect.top,
-      right: pageBox.left + rect.left + rect.width,
-      bottom: pageBox.top + rect.top + rect.height,
-    }));
-    const matches = [...layer.querySelectorAll<HTMLElement>("span")].filter((span) => {
-      const rect = span.getBoundingClientRect();
-      return selected.some(
-        (target) =>
-          rect.left < target.right &&
-          rect.right > target.left &&
-          rect.top < target.bottom &&
-          rect.bottom > target.top,
-      );
-    });
-    if (!matches.length) return;
-
-    // Update only existing text nodes. This keeps every PDF.js element/tag and
-    // its positioning intact instead of replacing the selected content with a cover layer.
-    const textNodes = matches.flatMap((element) => {
+    if (!layer || !translatedText) return;
+    const textNodes = [...layer.querySelectorAll<HTMLElement>("span")].flatMap((element) => {
       const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
       const nodes: Text[] = [];
       let node = walker.nextNode();
       while (node) {
-        if (node.textContent) nodes.push(node as Text);
+        if (node.textContent?.trim()) nodes.push(node as Text);
         node = walker.nextNode();
       }
       return nodes;
     });
-    const originalLengths = textNodes.map((node) => node.data.length);
-    const totalLength = originalLengths.reduce((sum, length) => sum + length, 0) || textNodes.length;
-    let previousEnd = 0;
+    if (!textNodes.length) return;
+    const lengths = textNodes.map((node) => node.data.length);
+    const total = lengths.reduce((sum, length) => sum + length, 0) || 1;
+    let start = 0;
     textNodes.forEach((node, index) => {
-      const isLast = index === textNodes.length - 1;
-      const end = isLast
-        ? replaceText.length
-        : Math.round(previousEnd + (replaceText.length * (originalLengths[index] || 1)) / totalLength);
-      node.data = replaceText.slice(previousEnd, end);
-      previousEnd = end;
+      const end = index === textNodes.length - 1
+        ? translatedText.length
+        : Math.round(start + (translatedText.length * lengths[index]) / total);
+      node.data = translatedText.slice(start, end);
+      start = end;
     });
-    matches.forEach((element) => {
-      element.dir = "auto";
-      element.style.whiteSpace = "pre-wrap";
-      element.style.color = "var(--fg)";
-      element.style.zIndex = "2";
+    textNodes.forEach((node) => {
+      const element = node.parentElement;
+      if (element) element.dir = "auto";
     });
-  }, [replaceText, replaceRects, pageSize]);
+  }, [translatedText, pageSize]);
 
-  function handleWheel(event: React.WheelEvent<HTMLDivElement>) {
+  const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+
+  function handleWheel(event: WheelEvent<HTMLDivElement>) {
     if (!event.ctrlKey) return;
     event.preventDefault();
     onZoomChange(zoom + (event.deltaY < 0 ? 0.1 : -0.1));
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointersRef.current.size === 2) {
+      const points = [...pointersRef.current.values()];
+      pinchRef.current = {
+        distance: Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y),
+        zoom,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!pointersRef.current.has(event.pointerId)) return;
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointersRef.current.size !== 2 || !pinchRef.current) return;
+    event.preventDefault();
+    const points = [...pointersRef.current.values()];
+    const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+    onZoomChange(pinchRef.current.zoom * (distance / pinchRef.current.distance));
+  }
+
+  function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
+    pointersRef.current.delete(event.pointerId);
+    if (pointersRef.current.size < 2) pinchRef.current = null;
   }
 
   return (
@@ -306,8 +310,13 @@ export function PdfViewer({
       ref={scrollerRef}
       dir="ltr"
       className={cn("relative min-h-0 flex-1 overflow-auto bg-bg-subtle", className)}
+      style={{ touchAction: "pan-x pan-y" }}
       onMouseUp={handleMouseUp}
       onWheel={handleWheel}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       <div className="flex min-h-full justify-center p-4 sm:p-6">
         <div
