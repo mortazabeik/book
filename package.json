@@ -1,5 +1,8 @@
 {
-  "name": "app-builder-workspace",
+  "name": "morio-book",
+  "version": "1.0.0",
+  "description": "Morio Book",
+  "author": "morio",
   "private": true,
   "sideEffects": false,
   "type": "module",
