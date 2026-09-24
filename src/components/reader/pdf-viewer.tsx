@@ -390,26 +390,35 @@ export function PdfViewer({
         >
           <canvas ref={canvasRef} className={cn("pdf-canvas block h-full w-full", pdfDarkMode && "pdf-canvas-dark")} />
           <div ref={textLayerRef} className={cn("textLayer", translatedBlocks?.length && "translated-source-hidden")} />
-          {translatedBlocks?.map((block, index) => (
-            <div
-              key={`${index}-${block.text.slice(0, 12)}`}
-              className="translated-block"
+  {translatedBlocks?.map((block, index) => {
+  const blockWidth = Math.max(block.rect.width, 24);
+  const originalFontSize = Math.max(block.fontSize, 10);
+  const fittedFontSize = Math.max(
+    7,
+    Math.min(originalFontSize, blockWidth / Math.max(block.translation.length * 0.62, 1)),
+  );
+  return (
+  <div
+  key={`${index}-${block.text.slice(0, 12)}`}
+  className="translated-block"
               dir="auto"
               aria-label="Translated paragraph"
               style={{
                 left: block.rect.left,
                 top: block.rect.top,
-                width: Math.max(block.rect.width, 24),
-                minHeight: block.rect.height,
-                fontSize: block.fontSize,
+  width: blockWidth,
+  height: Math.max(block.rect.height, fittedFontSize * 1.25),
+  minHeight: fittedFontSize * 1.25,
+  fontSize: fittedFontSize,
                 fontFamily: block.fontFamily,
                 fontWeight: block.fontWeight,
                 fontStyle: block.fontStyle,
               }}
-            >
-              {block.translation}
-            </div>
-          ))}
+  >
+  {block.translation}
+  </div>
+  );
+  })}
           {status === "loading" ? (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/80 text-sm text-muted">
               Opening page…
