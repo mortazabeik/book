@@ -314,7 +314,7 @@ function ReaderShell() {
   const canNext = page < numPages;
 
   const desktopWindow = (typeof window !== "undefined" ? window : undefined) as
-    | (Window & {
+    (Window & {
         morioDesktop?: {
           isDesktop?: boolean;
           windowControls?: {
