@@ -253,7 +253,8 @@ export function PdfViewer({
         const previousSignature = previous ? `${previous.fontFamily}:${Math.round(previous.fontSize)}` : "";
         const currentSignature = `${style?.fontFamily ?? "sans-serif"}:${Math.round(fontSize)}`;
         const styleMatches = previousSignature === currentSignature;
-        const sameParagraph = previous && styleMatches && !pendingLineBreak && Math.abs(rect.top - (previous.rect.top + previous.rect.height)) < fontSize * 2.5;
+        const paragraphBoundary = Boolean(previous && !styleMatches && pendingLineBreak);
+        const sameParagraph = previous && !paragraphBoundary;
         if (sameParagraph) {
           previous.text = `${previous.text} ${item.str}`.replace(/\s+/g, " ").trim();
           const rightEdge = Math.max(previous.rect.left + previous.rect.width, rect.left + rect.width);
