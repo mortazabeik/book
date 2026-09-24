@@ -19,6 +19,8 @@ export type SelectionPayload = {
 export type TextBlock = {
   text: string;
   rect: OverlayRect;
+  parts?: Array<{ text: string; rect: OverlayRect }>;
+
   fontSize: number;
   fontFamily: string;
   fontWeight: string;
@@ -257,6 +259,8 @@ export function PdfViewer({
         const sameParagraph = previous && !paragraphBoundary;
         if (sameParagraph) {
           previous.text = `${previous.text} ${item.str}`.replace(/\s+/g, " ").trim();
+          previous.parts ??= [{ text: previous.text, rect: previous.rect }];
+          previous.parts.push({ text: item.str.trim(), rect });
           const rightEdge = Math.max(previous.rect.left + previous.rect.width, rect.left + rect.width);
           previous.rect.width = rightEdge - previous.rect.left;
           previous.rect.height = Math.max(previous.rect.height, rect.top + rect.height - previous.rect.top);
@@ -264,6 +268,7 @@ export function PdfViewer({
           blocks.push({
             text: item.str.trim(),
             rect,
+            parts: [{ text: item.str.trim(), rect }],
             fontSize,
             fontFamily: style?.fontFamily ?? "sans-serif",
             fontWeight: "400",

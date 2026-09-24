@@ -287,8 +287,23 @@ function ReaderShell() {
           data: { text: block.text, sourceLang, targetLang },
         });
         if (!res.ok) throw new Error(res.error);
-        return { ...block, translation: res.text };
-      }));
+        const parts = block.parts ?? [{ text: block.text, rect: block.rect }];
+        if (parts.length === 1) return { ...block, translation: res.text };
+        const words = res.text.trim().split(/\s+/).filter(Boolean);
+        const totalChars = parts.reduce((sum, part) => sum + part.text.length, 0) || 1;
+        let wordIndex = 0;
+        const segmented = parts.map((part, index) => {
+          const remainingParts = parts.length - index - 1;
+          const targetChars = Math.round((part.text.length / totalChars) * words.length);
+          const count = index === parts.length - 1
+            ? words.length - wordIndex
+            : Math.max(0, Math.min(words.length - wordIndex - remainingParts, targetChars));
+          const translation = words.slice(wordIndex, wordIndex + count).join(" ");
+          wordIndex += count;
+          return { ...block, text: part.text, rect: part.rect, translation, parts: undefined };
+        });
+        return segmented;
+      })).then((items) => items.flat());
       setTranslatedBlocks(results);
       setTranslatedPageText(results.map((block) => block.translation).join("\n\n"));
       setCurrent({ source: blocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n") });
