@@ -241,8 +241,6 @@ export function PdfViewer({
     });
   }
 
-  const box = boundingBox(replaceRects);
-
   useEffect(() => {
     const layer = textLayerRef.current;
     if (!layer || !replaceText || !replaceRects?.length) return;
@@ -254,8 +252,7 @@ export function PdfViewer({
       right: pageBox.left + rect.left + rect.width,
       bottom: pageBox.top + rect.top + rect.height,
     }));
-    const spans = [...layer.querySelectorAll<HTMLElement>("span")];
-    const matches = spans.filter((span) => {
+    const matches = [...layer.querySelectorAll<HTMLElement>("span")].filter((span) => {
       const rect = span.getBoundingClientRect();
       return selected.some(
         (target) =>
@@ -266,11 +263,23 @@ export function PdfViewer({
       );
     });
     if (!matches.length) return;
+
+    // Replace the text nodes in the existing PDF.js spans so their positioning,
+    // font, and other text-layer tags remain intact instead of covering them.
+    const originalLengths = matches.map((span) => span.textContent?.length ?? 0);
+    const totalLength = originalLengths.reduce((sum, length) => sum + length, 0) || matches.length;
+    let previousEnd = 0;
     matches.forEach((span, index) => {
-      span.textContent = index === 0 ? replaceText : "";
-      span.style.color = index === 0 ? "var(--fg)" : "transparent";
-      span.style.whiteSpace = "normal";
+      const isLast = index === matches.length - 1;
+      const end = isLast
+        ? replaceText.length
+        : Math.round(previousEnd + (replaceText.length * (originalLengths[index] || 1)) / totalLength);
+      span.textContent = replaceText.slice(previousEnd, end);
+      span.dir = "auto";
+      span.style.whiteSpace = "pre-wrap";
+      span.style.color = "var(--fg)";
       span.style.zIndex = "2";
+      previousEnd = end;
     });
   }, [replaceText, replaceRects, pageSize]);
 
@@ -301,22 +310,6 @@ export function PdfViewer({
         >
           <canvas ref={canvasRef} className="pdf-canvas block h-full w-full" />
           <div ref={textLayerRef} className="textLayer" />
-          {replaceText && box ? (
-            <div
-              data-translation-ui=""
-              className="replace-overlay absolute z-20 overflow-auto rounded-sm bg-paper px-2 py-1.5 text-fg shadow-[var(--shadow-border)]"
-              style={{
-                left: box.left,
-                top: box.top,
-                minWidth: box.width,
-                minHeight: box.height,
-                maxWidth: Math.max(box.width, pageSize.width - box.left - 12),
-              }}
-              dir="auto"
-            >
-              <p className="text-pretty text-sm leading-relaxed">{replaceText}</p>
-            </div>
-          ) : null}
           {status === "loading" ? (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/80 text-sm text-muted">
               در حال گشودن صفحه…
@@ -333,17 +326,3 @@ export function PdfViewer({
   );
 }
 
-function boundingBox(rects: OverlayRect[] | null) {
-  if (!rects || rects.length === 0) return null;
-  let left = Infinity;
-  let top = Infinity;
-  let right = 0;
-  let bottom = 0;
-  for (const rect of rects) {
-    left = Math.min(left, rect.left);
-    top = Math.min(top, rect.top);
-    right = Math.max(right, rect.left + rect.width);
-    bottom = Math.max(bottom, rect.top + rect.height);
-  }
-  return { left, top, width: right - left, height: bottom - top };
-}
