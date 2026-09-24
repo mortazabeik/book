@@ -46,12 +46,14 @@
   --font-sans: "Morio Sans", "Segoe UI", Arial, sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --header: #1688e8;
+  --header-fg: #ffffff;
   --scroll-thumb: color-mix(in srgb, var(--accent) 38%, var(--bg-elevated));
   --scroll-track: color-mix(in srgb, var(--bg) 82%, transparent);
 }
 
 .dark {
   --header: #08253f;
+  --header-fg: #ffffff;
   --bg: #12110f;
   --bg-elevated: #1c1a17;
   --bg-subtle: #0e0d0c;
@@ -149,6 +151,28 @@
 
 .translation-action:hover {
   background: rgba(255, 255, 255, 0.16);
+}
+
+.electron-window-button {
+  display: inline-flex;
+  width: 30px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: color-mix(in srgb, var(--header-fg) 78%, transparent);
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.electron-window-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+  background: color-mix(in srgb, var(--header-fg) 14%, transparent);
+  color: var(--header-fg);
+}
+
+.electron-window-button.electron-window-close:hover {
+  background: #d94b58;
+  color: #fff;
 }
 
 .language-options {
