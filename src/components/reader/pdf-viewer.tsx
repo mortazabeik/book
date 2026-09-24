@@ -218,8 +218,13 @@ export function PdfViewer({
           .filter(Boolean),
       );
       const blocks: TextBlock[] = [];
+      let pendingLineBreak = false;
       for (const item of textContent.items) {
-        if (!("str" in item) || typeof item.str !== "string" || !item.str.trim()) continue;
+        const hasText = "str" in item && typeof item.str === "string" && Boolean(item.str.trim());
+        if (!hasText) {
+          pendingLineBreak ||= "hasEOL" in item && item.hasEOL === true;
+          continue;
+        }
         const style = textContent.styles[item.fontName];
         const [, , , scaleY, x, y] = item.transform;
         const fontSize = Math.max(8, Math.abs(scaleY) * scale);
@@ -246,7 +251,10 @@ export function PdfViewer({
         const signature = `${item.fontName}:${Math.round(fontSize)}:${style?.fontFamily ?? "sans-serif"}`;
         const previous = blocks[blocks.length - 1];
         const previousSignature = previous ? `${previous.fontFamily}:${Math.round(previous.fontSize)}` : "";
-        if (previous && previousSignature === `${style?.fontFamily ?? "sans-serif"}:${Math.round(fontSize)}` && Math.abs(rect.top - (previous.rect.top + previous.rect.height)) < fontSize * 2.5) {
+        const currentSignature = `${style?.fontFamily ?? "sans-serif"}:${Math.round(fontSize)}`;
+        const styleMatches = previousSignature === currentSignature;
+        const sameParagraph = previous && styleMatches && !pendingLineBreak && Math.abs(rect.top - (previous.rect.top + previous.rect.height)) < fontSize * 2.5;
+        if (sameParagraph) {
           previous.text = `${previous.text} ${item.str}`.replace(/\s+/g, " ").trim();
           const rightEdge = Math.max(previous.rect.left + previous.rect.width, rect.left + rect.width);
           previous.rect.width = rightEdge - previous.rect.left;
@@ -262,6 +270,7 @@ export function PdfViewer({
             color: "currentColor",
           });
         }
+        pendingLineBreak = "hasEOL" in item && item.hasEOL === true;
       }
       onTextBlocksRef.current?.(blocks);
       textLayerDiv.innerHTML = "";
