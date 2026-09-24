@@ -20,6 +20,7 @@ export type TextBlock = {
   text: string;
   rect: OverlayRect;
   parts?: Array<{ text: string; rect: OverlayRect }>;
+  paragraphSignature?: string;
 
   fontSize: number;
   fontFamily: string;
@@ -252,9 +253,8 @@ export function PdfViewer({
         };
         const signature = `${item.fontName}:${Math.round(fontSize)}:${style?.fontFamily ?? "sans-serif"}`;
         const previous = blocks[blocks.length - 1];
-        const previousSignature = previous ? `${previous.fontFamily}:${Math.round(previous.fontSize)}` : "";
-        const currentSignature = `${style?.fontFamily ?? "sans-serif"}:${Math.round(fontSize)}`;
-        const styleMatches = previousSignature === currentSignature;
+        const currentSignature = `${item.fontName}:${style?.fontFamily ?? "sans-serif"}:${Math.round(fontSize)}`;
+        const styleMatches = previous?.paragraphSignature === currentSignature;
         const paragraphBoundary = Boolean(previous && !styleMatches && pendingLineBreak);
         const sameParagraph = previous && !paragraphBoundary;
         if (sameParagraph) {
@@ -289,6 +289,7 @@ export function PdfViewer({
             text: item.str.trim(),
             rect,
             parts: [{ text: item.str.trim(), rect }],
+            paragraphSignature: currentSignature,
             fontSize,
             fontFamily: style?.fontFamily ?? "sans-serif",
             fontWeight: "400",
