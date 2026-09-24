@@ -33,8 +33,12 @@ async function startServer(root) {
       res.end(String(error));
     }
   });
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-  return { server, port: server.address().port };
+  const port = Number(process.env.ELECTRON_PORT || 47832);
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, "127.0.0.1", resolve);
+  });
+  return { server, port };
 }
 
 module.exports = { startServer };

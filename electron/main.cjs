@@ -2,6 +2,8 @@ const { app, BrowserWindow, shell } = require("electron");
 const path = require("node:path");
 const { startServer } = require("./server.cjs");
 
+app.commandLine.appendSwitch("enable-features", "CSSBackdropFilter");
+
 let localServer;
 
 const startUrl = process.env.ELECTRON_START_URL || "http://localhost:8080";
@@ -11,6 +13,12 @@ async function loadApplication(window) {
     const root = path.join(process.resourcesPath, "app.asar");
     localServer = await startServer(root);
     await window.loadURL(`http://127.0.0.1:${localServer.port}/`);
+    window.webContents.insertCSS(`
+      .glass-panel, .translation-actions, .language-options {
+        -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+        backdrop-filter: blur(24px) saturate(160%) !important;
+      }
+    `);
   } else {
     await window.loadURL(startUrl);
   }
@@ -24,6 +32,9 @@ function createWindow() {
     minHeight: 640,
     backgroundColor: "#071522",
     show: false,
+    autoHideMenuBar: true,
+    maximizable: true,
+    titleBarStyle: "hidden",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -32,6 +43,8 @@ function createWindow() {
     },
   });
 
+  window.setMenuBarVisibility(false);
+  window.removeMenu();
   window.once("ready-to-show", () => window.show());
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//i.test(url) && !url.startsWith(startUrl)) {
