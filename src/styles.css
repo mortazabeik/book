@@ -136,10 +136,15 @@
 }
 
 .language-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--accent) 58%, transparent) transparent;
-  background: transparent;
-  box-shadow: none;
+  background: color-mix(in srgb, var(--bg-elevated) 38%, transparent);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(32px) saturate(175%);
+  -webkit-backdrop-filter: blur(32px) saturate(175%);
 }
 
 .language-options::-webkit-scrollbar {
@@ -152,7 +157,12 @@
 }
 
 .language-options::-webkit-scrollbar-button {
-  display: none;
+  display: block;
+  width: 0;
+  height: 0;
+  background: transparent;
+  color: transparent;
+  border: 0;
 }
 
 .language-options::-webkit-scrollbar-thumb {
