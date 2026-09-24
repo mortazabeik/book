@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import {
   PdfViewer,
   type SelectionPayload,
+  type TextBlock,
 } from "./pdf-viewer";
 
 export function ReaderApp() {
@@ -86,6 +87,8 @@ function ReaderShell() {
   const [pageText, setPageText] = useState("");
   const [pageTextItems, setPageTextItems] = useState<string[]>([]);
   const [translatedPageText, setTranslatedPageText] = useState<string | null>(null);
+  const [pageBlocks, setPageBlocks] = useState<TextBlock[]>([]);
+  const [translatedBlocks, setTranslatedBlocks] = useState<Array<TextBlock & { translation: string }> | null>(null);
   const [pageTranslating, setPageTranslating] = useState(false);
   const [floatCard, setFloatCard] = useState<{
     x: number;
@@ -256,31 +259,27 @@ function ReaderShell() {
   }
 
   async function translateWholePage() {
-    if (translatedPageText) {
+    if (translatedBlocks) {
+      setTranslatedBlocks(null);
       setTranslatedPageText(null);
       setCurrent(null);
       return;
     }
-    if (!pageTextItems.length || pageTranslating) return;
+    if (!pageBlocks.length || pageTranslating) return;
     setPageTranslating(true);
     setError(null);
     try {
-      const res = await translateText({
-        data: {
-          // Keep the PDF's text flow intact. The service receives one page,
-          // not individual text-layer lines, so a sentence is never split per line.
-          text: pageText,
-          sourceLang,
-          targetLang,
-        },
-      });
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
-      setTranslatedPageText(res.text);
-      setCurrent({ source: pageText, translation: res.text });
-      addHistory({ source: pageText, translation: res.text, sourceLang, targetLang });
+      const results = await Promise.all(pageBlocks.map(async (block) => {
+        const res = await translateText({
+          data: { text: block.text, sourceLang, targetLang },
+        });
+        if (!res.ok) throw new Error(res.error);
+        return { ...block, translation: res.text };
+      }));
+      setTranslatedBlocks(results);
+      setTranslatedPageText(results.map((block) => block.translation).join("\n\n"));
+      setCurrent({ source: pageBlocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n") });
+      addHistory({ source: pageBlocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n"), sourceLang, targetLang });
       setSettingsOpen(false);
     } catch {
       setError("خطا در ترجمه صفحه. دوباره تلاش کنید.");
@@ -367,8 +366,8 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label={translatedPageText ? "بازگشت به حالت عادی" : "ترجمه کل صفحه"}
-            disabled={pageTranslating || (!translatedPageText && !pageTextItems.length)}
+            aria-label={translatedBlocks ? "بازگشت به حالت عادی" : "ترجمه کل صفحه"}
+            disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)}
             onClick={() => void translateWholePage()}
           >
             {pageTranslating ? (
@@ -429,8 +428,9 @@ function ReaderShell() {
           }}
           onSelection={handleSelection}
             onPageText={setPageText}
-            onTextItems={setPageTextItems}
-            translatedText={translatedPageText}
+  onTextItems={setPageTextItems}
+  onTextBlocks={setPageBlocks}
+  translatedBlocks={translatedBlocks}
           className={split ? "md:col-span-7 min-h-0 max-md:min-h-0 max-md:flex-[1.2]" : ""}
         />
         {split ? (

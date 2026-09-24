@@ -16,6 +16,16 @@ export type SelectionPayload = {
   rects: OverlayRect[];
 };
 
+export type TextBlock = {
+  text: string;
+  rect: OverlayRect;
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: string;
+  fontStyle: string;
+  color: string;
+};
+
 type PdfViewerProps = {
   source: string | ArrayBuffer | null;
   page: number;
@@ -25,7 +35,8 @@ type PdfViewerProps = {
   onSelection: (payload: SelectionPayload | null) => void;
   onPageText?: (text: string) => void;
   onTextItems?: (items: string[]) => void;
-  translatedText?: string | null;
+  onTextBlocks?: (blocks: TextBlock[]) => void;
+  translatedBlocks?: Array<TextBlock & { translation: string }> | null;
   className?: string;
 };
 
@@ -38,7 +49,8 @@ export function PdfViewer({
   onSelection,
   onPageText,
   onTextItems,
-  translatedText,
+  onTextBlocks,
+  translatedBlocks,
   className,
 }: PdfViewerProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -55,6 +67,8 @@ export function PdfViewer({
   onSelectionRef.current = onSelection;
   onPageTextRef.current = onPageText;
   onTextItemsRef.current = onTextItems;
+  const onTextBlocksRef = useRef(onTextBlocks);
+  onTextBlocksRef.current = onTextBlocks;
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -201,6 +215,45 @@ export function PdfViewer({
           .map((item) => ("str" in item && typeof item.str === "string" ? item.str : ""))
           .filter(Boolean),
       );
+      const blocks: TextBlock[] = [];
+      for (const item of textContent.items) {
+        if (!("str" in item) || typeof item.str !== "string" || !item.str.trim()) continue;
+        const style = textContent.styles[item.fontName];
+        const [, , , scaleY, x, y] = item.transform;
+        const fontSize = Math.max(8, Math.abs(scaleY) * scale);
+        const [left, top, right, bottom] = viewport.convertToViewportRectangle([
+          x,
+          y - (item.height || Math.abs(scaleY)),
+          x + item.width,
+          y,
+        ]);
+        const rect = {
+          left: Math.min(left, right),
+          top: Math.min(top, bottom),
+          width: Math.abs(right - left),
+          height: Math.max(Math.abs(bottom - top), fontSize * 1.25),
+        };
+        const signature = `${item.fontName}:${Math.round(fontSize)}:${style?.fontFamily ?? "sans-serif"}`;
+        const previous = blocks[blocks.length - 1];
+        const previousSignature = previous ? `${previous.fontFamily}:${Math.round(previous.fontSize)}` : "";
+        if (previous && previousSignature === `${style?.fontFamily ?? "sans-serif"}:${Math.round(fontSize)}` && Math.abs(rect.top - (previous.rect.top + previous.rect.height)) < fontSize * 2.5) {
+          previous.text = `${previous.text} ${item.str}`.replace(/\s+/g, " ").trim();
+          const rightEdge = Math.max(previous.rect.left + previous.rect.width, rect.left + rect.width);
+          previous.rect.width = rightEdge - previous.rect.left;
+          previous.rect.height = Math.max(previous.rect.height, rect.top + rect.height - previous.rect.top);
+        } else {
+          blocks.push({
+            text: item.str.trim(),
+            rect,
+            fontSize,
+            fontFamily: style?.fontFamily ?? "sans-serif",
+            fontWeight: "400",
+            fontStyle: "normal",
+            color: "currentColor",
+          });
+        }
+      }
+      onTextBlocksRef.current?.(blocks);
       textLayerDiv.innerHTML = "";
       textLayerDiv.style.width = `${viewport.width}px`;
       textLayerDiv.style.height = `${viewport.height}px`;
@@ -321,14 +374,27 @@ export function PdfViewer({
           }}
         >
           <canvas ref={canvasRef} className="pdf-canvas block h-full w-full" />
-          <div ref={textLayerRef} className={cn("textLayer", translatedText && "translated-source-hidden")} />
-          {translatedText ? (
-            <div className="translated-page-overlay" dir="auto" aria-label="ترجمه صفحه">
-              {translatedText.split(/\n\s*\n/).map((paragraph, index) => (
-                <p key={`${index}-${paragraph.slice(0, 12)}`}>{paragraph}</p>
-              ))}
+          <div ref={textLayerRef} className={cn("textLayer", translatedBlocks?.length && "translated-source-hidden")} />
+          {translatedBlocks?.map((block, index) => (
+            <div
+              key={`${index}-${block.text.slice(0, 12)}`}
+              className="translated-block"
+              dir="auto"
+              aria-label="ترجمه پاراگراف"
+              style={{
+                left: block.rect.left,
+                top: block.rect.top,
+                width: Math.max(block.rect.width, 24),
+                minHeight: block.rect.height,
+                fontSize: block.fontSize,
+                fontFamily: block.fontFamily,
+                fontWeight: block.fontWeight,
+                fontStyle: block.fontStyle,
+              }}
+            >
+              {block.translation}
             </div>
-          ) : null}
+          ))}
           {status === "loading" ? (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/80 text-sm text-muted">
               در حال گشودن صفحه…

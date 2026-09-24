@@ -153,6 +153,22 @@
   margin-bottom: 0;
 }
 
+.translated-block {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 0.2em 0.35em;
+  border-radius: 0.35em;
+  background: color-mix(in srgb, var(--paper) 94%, var(--accent));
+  color: var(--fg);
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent);
+  user-select: text;
+}
+
 .textLayer.translated-source-hidden {
   visibility: hidden;
 }
