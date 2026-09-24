@@ -95,7 +95,13 @@ function ReaderShell() {
     translation: string;
   } | null>(null);
   const [pageText, setPageText] = useState("");
-  const [pageImage, setPageImage] = useState<{ blob: Blob; width: number; height: number } | null>(null);
+  const [pageImage, setPageImage] = useState<{
+    blob: Blob;
+    width: number;
+    height: number;
+    pixelWidth: number;
+    pixelHeight: number;
+  } | null>(null);
   const [pageTextItems, setPageTextItems] = useState<string[]>([]);
   const [translatedPageText, setTranslatedPageText] = useState<string | null>(null);
   const [pageBlocks, setPageBlocks] = useState<TextBlock[]>([]);
@@ -290,28 +296,49 @@ function ReaderShell() {
           ortOptions: { backend: "auto" },
         });
         const [result] = await ocr.predict(pageImage.blob);
-        const ocrBlocks: TextBlock[] = result.items
+        const scaleX = pageImage.width / pageImage.pixelWidth;
+        const scaleY = pageImage.height / pageImage.pixelHeight;
+        const lines = result.items
           .filter((item) => item.text.trim() && item.score >= 0.35)
           .map((item) => {
-            const xs = item.poly.map(([x]) => x);
-            const ys = item.poly.map(([, y]) => y);
-            const left = Math.min(...xs);
-            const top = Math.min(...ys);
+            const xs = item.poly.map(([x]) => x * scaleX);
+            const ys = item.poly.map(([, y]) => y * scaleY);
             return {
               text: item.text.trim(),
-              rect: {
-                left,
-                top,
-                width: Math.max(...xs) - left,
-                height: Math.max(...ys) - top,
-              },
-              fontSize: Math.max(10, Math.max(...ys) - top),
-              fontFamily: "Morio Sans",
-              fontWeight: "400",
-              fontStyle: "normal",
-              color: "currentColor",
+              left: Math.min(...xs),
+              top: Math.min(...ys),
+              right: Math.max(...xs),
+              bottom: Math.max(...ys),
             };
-          });
+          })
+          .sort((a, b) => a.top - b.top || a.left - b.left);
+        const paragraphLines: typeof lines[] = [];
+        for (const line of lines) {
+          const previous = paragraphLines.at(-1);
+          const previousBottom = previous?.at(-1)?.bottom ?? -Infinity;
+          const previousTop = previous?.at(-1)?.top ?? line.top;
+          const lineHeight = line.bottom - line.top;
+          if (!previous || line.top - previousBottom > lineHeight * 1.8 || line.top - previousTop > lineHeight * 3.2) {
+            paragraphLines.push([line]);
+          } else {
+            previous.push(line);
+          }
+        }
+        const ocrBlocks: TextBlock[] = paragraphLines.map((paragraph) => {
+          const left = Math.min(...paragraph.map((line) => line.left));
+          const top = Math.min(...paragraph.map((line) => line.top));
+          const right = Math.max(...paragraph.map((line) => line.right));
+          const bottom = Math.max(...paragraph.map((line) => line.bottom));
+          return {
+            text: paragraph.map((line) => line.text).join(" "),
+            rect: { left, top, width: right - left, height: bottom - top },
+            fontSize: Math.max(10, (bottom - top) / paragraph.length),
+            fontFamily: "Morio Sans",
+            fontWeight: "400",
+            fontStyle: "normal",
+            color: "currentColor",
+          };
+        });
         if (ocrBlocks.length) blocks = ocrBlocks;
       }
       if (!blocks.length) throw new Error("No text was detected on this page.");
@@ -529,7 +556,7 @@ function ReaderShell() {
           onSelection={handleSelection}
           pdfDarkMode={pdfDarkMode}
           onPageText={setPageText}
-          onPageImage={(blob, size) => setPageImage({ blob, width: size.width, height: size.height })}
+          onPageImage={(blob, size) => setPageImage({ blob, ...size })}
           onTextItems={setPageTextItems}
           onTextBlocks={(blocks) => {
             setPageBlocks(blocks);

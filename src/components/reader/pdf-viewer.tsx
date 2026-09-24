@@ -35,7 +35,7 @@ type PdfViewerProps = {
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   onPageText?: (text: string) => void;
-  onPageImage?: (image: Blob, size: { width: number; height: number }) => void;
+  onPageImage?: (image: Blob, size: { width: number; height: number; pixelWidth: number; pixelHeight: number }) => void;
   onTextItems?: (items: string[]) => void;
   onTextBlocks?: (blocks: TextBlock[]) => void;
   translatedBlocks?: Array<TextBlock & { translation: string }> | null;
@@ -207,7 +207,12 @@ export function PdfViewer({
       if (cancelled) return;
 
       const imageBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-      if (imageBlob) onPageImage?.(imageBlob, { width: viewport.width, height: viewport.height });
+      if (imageBlob) onPageImage?.(imageBlob, {
+        width: viewport.width,
+        height: viewport.height,
+        pixelWidth: canvas.width,
+        pixelHeight: canvas.height,
+      });
 
       const textContent = await pdfPage.getTextContent();
       if (cancelled) return;
@@ -407,8 +412,8 @@ export function PdfViewer({
                 left: block.rect.left,
                 top: block.rect.top,
   width: blockWidth,
-  height: Math.max(block.rect.height, fittedFontSize * 1.25),
-  minHeight: fittedFontSize * 1.25,
+  height: Math.max(block.rect.height, fittedFontSize * 1.15),
+  minHeight: fittedFontSize * 1.15,
   fontSize: fittedFontSize,
                 fontFamily: block.fontFamily,
                 fontWeight: block.fontWeight,
