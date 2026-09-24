@@ -149,6 +149,7 @@ export default defineConfig(({ command, isPreview }) => ({
   server: {
     host: "0.0.0.0",
     port: 8080,
+    // The preview proxy is pinned to 8080; never silently fall back to 8081.
     strictPort: true,
   },
   preview: {
