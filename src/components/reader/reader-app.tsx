@@ -24,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SOURCE_LANGUAGES, TARGET_LANGUAGES } from "@/lib/languages";
 import {
-  clearUploadedPdf,
   loadUploadedPdf,
   saveUploadedPdf,
 } from "@/lib/pdf-storage";
@@ -269,15 +268,6 @@ function ReaderShell() {
     dismissTransient();
   }
 
-  async function restoreDefaultPdf() {
-    setTranslatedPageText(null);
-    setPageTextItems([]);
-    await clearUploadedPdf();
-    setPdfSource("default");
-    setPdfData(DEFAULT_PDF_URL);
-    setCurrent(null);
-    dismissTransient();
-  }
 
   async function translateWholePage() {
     if (translatedBlocks) {
@@ -326,6 +316,32 @@ function ReaderShell() {
       })
     | undefined;
   const desktopControls = desktopWindow?.morioDesktop;
+
+  useEffect(() => {
+    const electronAPI = (typeof window !== "undefined" ? window : undefined) as
+      | (Window & {
+          electronAPI?: {
+            minimize: () => void;
+            maximize: () => void;
+            close: () => void;
+          };
+        })
+      | undefined;
+    if (!electronAPI?.electronAPI) return;
+
+    const controls = electronAPI.electronAPI;
+    const minimize = document.getElementById("minimize");
+    const maximize = document.getElementById("maximize");
+    const close = document.getElementById("close");
+    minimize?.addEventListener("click", controls.minimize);
+    maximize?.addEventListener("click", controls.maximize);
+    close?.addEventListener("click", controls.close);
+    return () => {
+      minimize?.removeEventListener("click", controls.minimize);
+      maximize?.removeEventListener("click", controls.maximize);
+      close?.removeEventListener("click", controls.close);
+    };
+  }, []);
 
   return (
     <div className="glass-root flex h-dvh flex-col bg-bg text-fg">
@@ -445,13 +461,13 @@ function ReaderShell() {
         </div>
         {desktopControls?.isDesktop && desktopControls.windowControls ? (
           <div className="electron-window-controls ms-2 flex shrink-0 items-center gap-0.5 border-s border-white/15 ps-2">
-            <button type="button" className="electron-window-button" aria-label="Minimize window" onClick={desktopControls.windowControls.minimize}>
+            <button id="minimize" type="button" className="electron-window-button" aria-label="Minimize window">
               <Minimize2 className="size-3.5" />
             </button>
-            <button type="button" className="electron-window-button" aria-label="Toggle fullscreen" onClick={desktopControls.windowControls.toggleMaximize}>
+            <button id="maximize" type="button" className="electron-window-button" aria-label="Toggle fullscreen">
               <Maximize2 className="size-3.5" />
             </button>
-            <button type="button" className="electron-window-button electron-window-close" aria-label="Close window" onClick={desktopControls.windowControls.close}>
+            <button id="close" type="button" className="electron-window-button electron-window-close" aria-label="Close window">
               <X className="size-3.5" />
             </button>
           </div>
@@ -610,7 +626,6 @@ function ReaderShell() {
       <SettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
-        onRestorePdf={() => void restoreDefaultPdf()}
       />
     </div>
   );
@@ -700,11 +715,9 @@ function TranslatePanel({
 function SettingsDialog({
   open,
   onOpenChange,
-  onRestorePdf,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRestorePdf: () => void;
 }) {
   const sourceLang = useSettings((s) => s.sourceLang);
   const targetLang = useSettings((s) => s.targetLang);
@@ -846,22 +859,17 @@ function SettingsDialog({
               </div>
             </section>
 
-            <section className="space-y-2">
-              <h3 className="text-xs font-medium text-muted">File</h3>
-              {pdfSource === "upload" ? (
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  onClick={onRestorePdf}
+            <section className="space-y-3 border-t border-border pt-5">
+              <h3 className="text-xs font-medium text-muted">About</h3>
+              <div className="rounded-xl bg-bg px-3.5 py-3 shadow-[var(--shadow-border)]">
+                <p className="text-sm font-medium">Morteza Beik-Nezhad</p>
+                <a
+                  className="mt-1 block text-xs text-accent transition-colors hover:text-accent/80"
+                  href="mailto:moriobeik.dev@gmail.com"
                 >
-                  <RotateCcw className="size-4" />
-                  Restore book.pdf
-                </Button>
-              ) : (
-                <p className="px-1 text-[11px] text-subtle">
-                  The default book.pdf is loaded from this app's storage.
-                </p>
-              )}
+                  moriobeik.dev@gmail.com
+                </a>
+              </div>
             </section>
           </div>
         </Dialog.Content>
