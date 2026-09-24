@@ -305,16 +305,15 @@ function ReaderShell() {
   return (
     <div className="glass-root flex h-dvh flex-col bg-bg text-fg">
       <div className="glass-backdrop" aria-hidden="true" />
-      <header className="glass-panel flex shrink-0 items-center gap-2 border-b border-border px-2 py-1.5 sm:px-3">
+      <header className="glass-panel flex shrink-0 items-center gap-2 border-b border-[#0a3152] bg-[#08253f] px-2 py-1.5 text-white sm:px-3">
         <div className="flex min-w-0 items-center gap-2">
           <img
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Morio%20book-dark%20mod-YFq92plZKjHgqOzYtNJeFjEFHNHdeQ.png"
             alt="Morio Book"
-            className="h-9 w-auto max-w-36 rounded-md bg-[#08253f] px-2 py-1 object-contain shadow-sm"
+            className="h-9 w-auto max-w-36 object-contain"
           />
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium leading-tight">Morio Book</p>
-            <p className="truncate text-[11px] text-subtle">
+            <p className="truncate text-[11px] text-white/70">
               {pdfSource === "upload" && uploadName ? uploadName : "book.pdf"}
             </p>
           </div>
@@ -322,7 +321,7 @@ function ReaderShell() {
 
         <div
           dir="ltr"
-          className="mx-auto flex items-center gap-1 rounded-lg bg-bg px-1 py-0.5 shadow-[var(--shadow-border)]"
+          className="mx-auto flex items-center gap-1 rounded-lg bg-white/10 px-1 py-0.5 shadow-[0_0_0_1px_rgba(255,255,255,0.14)]"
         >
           <Button
             variant="ghost"
