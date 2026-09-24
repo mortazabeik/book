@@ -22,6 +22,7 @@ type PdfViewerProps = {
   zoom: number;
   onZoomChange: (zoom: number) => void;
   translatedText: string | null;
+  onPageTextRequest: (text: string) => void;
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   className?: string;
@@ -33,6 +34,7 @@ export function PdfViewer({
   zoom,
   onZoomChange,
   translatedText,
+  onPageTextRequest,
   onNumPages,
   onSelection,
   className,
@@ -200,6 +202,15 @@ export function PdfViewer({
       renderTaskRef.current?.cancel();
     };
   }, [docGen, page, zoom, viewWidth]);
+
+  function handlePageTextRequest() {
+    const text = textLayerRef.current?.textContent?.replace(/\\s+/g, " ").trim();
+    if (!text) {
+      onSelectionRef.current(null);
+      return;
+    }
+    onPageTextRequest(text);
+  }
 
   function handleMouseUp(event: MouseEvent<HTMLDivElement>) {
     const layer = textLayerRef.current;

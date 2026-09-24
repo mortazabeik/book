@@ -242,12 +242,21 @@ function ReaderShell() {
 
   const translatePage = useCallback(
     async (text: string) => {
+      if (!text.trim()) {
+        setError("متنی برای ترجمه در این صفحه پیدا نشد");
+        return;
+      }
       setLoading(true);
       setError(null);
-      const res = await translateText({ data: { text, sourceLang, targetLang } });
-      if (res.ok) setPageTranslation(res.text);
-      else setError(res.error);
-      setLoading(false);
+      try {
+        const res = await translateText({ data: { text, sourceLang, targetLang } });
+        if (res.ok) setPageTranslation(res.text);
+        else setError(res.error);
+      } catch {
+        setError("ترجمه انجام نشد. دوباره تلاش کنید.");
+      } finally {
+        setLoading(false);
+      }
     },
     [sourceLang, targetLang],
   );
@@ -341,8 +350,8 @@ function ReaderShell() {
             aria-label="ترجمه کل صفحه"
             disabled={loading}
             onClick={() => {
-              const text = document.querySelector(".pdf-page .textLayer")?.textContent?.trim();
-              if (text) void translatePage(text);
+              const text = document.querySelector(".pdf-page .textLayer")?.textContent ?? "";
+              void translatePage(text.replace(/\\s+/g, " ").trim());
             }}
           >
             <Languages className="size-4" />
@@ -392,6 +401,7 @@ function ReaderShell() {
           zoom={zoom}
           onZoomChange={setZoom}
           translatedText={pageTranslation}
+          onPageTextRequest={(text) => void translatePage(text)}
           onNumPages={(n) => {
             setNumPages(n);
             if (page > n) setPage(n);
