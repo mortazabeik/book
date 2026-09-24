@@ -260,10 +260,18 @@ export function PdfViewer({
         if (sameParagraph) {
           previous.text = `${previous.text} ${item.str}`.replace(/\s+/g, " ").trim();
           previous.parts ??= [{ text: previous.text, rect: previous.rect }];
-          previous.parts.push({ text: item.str.trim(), rect });
-          const rightEdge = Math.max(previous.rect.left + previous.rect.width, rect.left + rect.width);
-          previous.rect.width = rightEdge - previous.rect.left;
-          previous.rect.height = Math.max(previous.rect.height, rect.top + rect.height - previous.rect.top);
+          const lastPart = previous.parts.at(-1);
+          if (lastPart) {
+            lastPart.text = `${lastPart.text} ${item.str}`.replace(/\s+/g, " ").trim();
+            const right = Math.max(lastPart.rect.left + lastPart.rect.width, rect.left + rect.width);
+            const bottom = Math.max(lastPart.rect.top + lastPart.rect.height, rect.top + rect.height);
+            lastPart.rect = {
+              left: Math.min(lastPart.rect.left, rect.left),
+              top: Math.min(lastPart.rect.top, rect.top),
+              width: right - Math.min(lastPart.rect.left, rect.left),
+              height: bottom - Math.min(lastPart.rect.top, rect.top),
+            };
+          }
         } else {
           blocks.push({
             text: item.str.trim(),
