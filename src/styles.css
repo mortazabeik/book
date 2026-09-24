@@ -151,6 +151,27 @@
   background: rgba(255, 255, 255, 0.16);
 }
 
+.electron-window-button {
+  display: inline-flex;
+  width: 30px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.78);
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.electron-window-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
+}
+
+.electron-window-button.electron-window-close:hover {
+  background: #d94b58;
+  color: white;
+}
+
 .language-options {
   display: flex;
   flex-direction: column;

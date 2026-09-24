@@ -9,6 +9,8 @@ import {
   FileUp,
   Languages,
   LoaderCircle,
+  Maximize2,
+  Minimize2,
   Minus,
   Moon,
   Plus,
@@ -311,6 +313,20 @@ function ReaderShell() {
   const canPrev = page > 1;
   const canNext = page < numPages;
 
+  const desktopWindow = (typeof window !== "undefined" ? window : undefined) as
+    | (Window & {
+        morioDesktop?: {
+          isDesktop?: boolean;
+          windowControls?: {
+            minimize: () => void;
+            toggleMaximize: () => void;
+            close: () => void;
+          };
+        };
+      })
+    | undefined;
+  const desktopControls = desktopWindow?.morioDesktop;
+
   return (
     <div className="glass-root flex h-dvh flex-col bg-bg text-fg">
       <div className="glass-backdrop" aria-hidden="true" />
@@ -362,6 +378,19 @@ function ReaderShell() {
         </div>
 
         <div className="ms-auto flex shrink-0 items-center gap-0.5">
+          {desktopControls?.isDesktop && desktopControls.windowControls ? (
+            <div className="electron-window-controls ms-2 flex items-center gap-0.5 border-s border-white/15 ps-2">
+              <button type="button" className="electron-window-button" aria-label="Minimize window" onClick={desktopControls.windowControls.minimize}>
+                <Minimize2 className="size-3.5" />
+              </button>
+              <button type="button" className="electron-window-button" aria-label="Toggle fullscreen" onClick={desktopControls.windowControls.toggleMaximize}>
+                <Maximize2 className="size-3.5" />
+              </button>
+              <button type="button" className="electron-window-button electron-window-close" aria-label="Close window" onClick={desktopControls.windowControls.close}>
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ) : null}
           <Button
             variant="ghost"
             size="icon-sm"
