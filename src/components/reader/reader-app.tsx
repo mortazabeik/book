@@ -318,27 +318,30 @@ function ReaderShell() {
           const previousBottom = previous?.at(-1)?.bottom ?? -Infinity;
           const previousTop = previous?.at(-1)?.top ?? line.top;
           const lineHeight = line.bottom - line.top;
-          if (!previous || line.top - previousBottom > lineHeight * 1.8 || line.top - previousTop > lineHeight * 3.2) {
-            paragraphLines.push([line]);
-          } else {
-            previous.push(line);
-          }
+          if (!previous || line.top - previousBottom > lineHeight * 1.8 || line.top - previousTop > lineHeight * 3.2) paragraphLines.push([line]);
+          else previous.push(line);
         }
-        const ocrBlocks: TextBlock[] = paragraphLines.map((paragraph) => {
-          const left = Math.min(...paragraph.map((line) => line.left));
-          const top = Math.min(...paragraph.map((line) => line.top));
-          const right = Math.max(...paragraph.map((line) => line.right));
-          const bottom = Math.max(...paragraph.map((line) => line.bottom));
+        const bitmap = await createImageBitmap(pageImage.blob);
+        const ocrBlocks: TextBlock[] = await Promise.all(paragraphLines.map(async (paragraph) => {
+          const left = Math.max(0, Math.floor(Math.min(...paragraph.map((line) => line.left)) / scaleX));
+          const top = Math.max(0, Math.floor(Math.min(...paragraph.map((line) => line.top)) / scaleY));
+          const right = Math.min(pageImage.pixelWidth, Math.ceil(Math.max(...paragraph.map((line) => line.right)) / scaleX));
+          const bottom = Math.min(pageImage.pixelHeight, Math.ceil(Math.max(...paragraph.map((line) => line.bottom)) / scaleY));
+          const crop = document.createElement("canvas");
+          crop.width = Math.max(1, right - left);
+          crop.height = Math.max(1, bottom - top);
+          crop.getContext("2d")?.drawImage(bitmap, left, top, crop.width, crop.height, 0, 0, crop.width, crop.height);
+          const cropBlob = await new Promise<Blob | null>((resolve) => crop.toBlob(resolve, "image/png"));
+          const cropResult = cropBlob ? await ocr.predict(cropBlob) : [];
+          const recognized = cropResult[0]?.items.filter((item) => item.text.trim() && item.score >= 0.35).map((item) => item.text.trim()).join(" ");
           return {
-            text: paragraph.map((line) => line.text).join(" "),
-            rect: { left, top, width: right - left, height: bottom - top },
-            fontSize: Math.max(10, (bottom - top) / paragraph.length),
-            fontFamily: "Morio Sans",
-            fontWeight: "400",
-            fontStyle: "normal",
-            color: "currentColor",
+            text: recognized || paragraph.map((line) => line.text).join(" "),
+            rect: { left: left * scaleX, top: top * scaleY, width: (right - left) * scaleX, height: (bottom - top) * scaleY },
+            fontSize: Math.max(10, (bottom - top) / Math.max(paragraph.length, 1)),
+            fontFamily: "Morio Sans", fontWeight: "400", fontStyle: "normal", color: "currentColor",
           };
-        });
+        }));
+        bitmap.close();
         if (ocrBlocks.length) blocks = ocrBlocks;
       }
       if (!blocks.length) throw new Error("No text was detected on this page.");
