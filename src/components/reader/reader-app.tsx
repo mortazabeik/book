@@ -24,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SOURCE_LANGUAGES, TARGET_LANGUAGES } from "@/lib/languages";
 import {
-  clearUploadedPdf,
   loadUploadedPdf,
   saveUploadedPdf,
 } from "@/lib/pdf-storage";
@@ -269,15 +268,6 @@ function ReaderShell() {
     dismissTransient();
   }
 
-  async function restoreDefaultPdf() {
-    setTranslatedPageText(null);
-    setPageTextItems([]);
-    await clearUploadedPdf();
-    setPdfSource("default");
-    setPdfData(DEFAULT_PDF_URL);
-    setCurrent(null);
-    dismissTransient();
-  }
 
   async function translateWholePage() {
     if (translatedBlocks) {
@@ -610,7 +600,6 @@ function ReaderShell() {
       <SettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
-        onRestorePdf={() => void restoreDefaultPdf()}
       />
     </div>
   );
@@ -700,11 +689,9 @@ function TranslatePanel({
 function SettingsDialog({
   open,
   onOpenChange,
-  onRestorePdf,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRestorePdf: () => void;
 }) {
   const sourceLang = useSettings((s) => s.sourceLang);
   const targetLang = useSettings((s) => s.targetLang);
@@ -846,22 +833,17 @@ function SettingsDialog({
               </div>
             </section>
 
-            <section className="space-y-2">
-              <h3 className="text-xs font-medium text-muted">File</h3>
-              {pdfSource === "upload" ? (
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  onClick={onRestorePdf}
+            <section className="space-y-3 border-t border-border pt-5">
+              <h3 className="text-xs font-medium text-muted">About</h3>
+              <div className="rounded-xl bg-bg px-3.5 py-3 shadow-[var(--shadow-border)]">
+                <p className="text-sm font-medium">Morteza Beik-Nezhad</p>
+                <a
+                  className="mt-1 block text-xs text-accent transition-colors hover:text-accent/80"
+                  href="mailto:moriobeik.dev@gmail.com"
                 >
-                  <RotateCcw className="size-4" />
-                  Restore book.pdf
-                </Button>
-              ) : (
-                <p className="px-1 text-[11px] text-subtle">
-                  The default book.pdf is loaded from this app's storage.
-                </p>
-              )}
+                  moriobeik.dev@gmail.com
+                </a>
+              </div>
             </section>
           </div>
         </Dialog.Content>
