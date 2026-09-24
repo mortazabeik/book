@@ -23,6 +23,7 @@ type PdfViewerProps = {
   onZoomChange: (zoom: number) => void;
   translatedText: string | null;
   onPageTextRequest: (text: string) => void;
+  onPageTextReady: (text: string) => void;
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   className?: string;
@@ -35,6 +36,7 @@ export function PdfViewer({
   onZoomChange,
   translatedText,
   onPageTextRequest,
+  onPageTextReady,
   onNumPages,
   onSelection,
   className,
@@ -193,7 +195,10 @@ export function PdfViewer({
         viewport,
       });
       await textLayer.render();
-      if (!cancelled) setStatus("ready");
+      if (!cancelled) {
+        onPageTextReady(textLayerDiv.textContent?.replace(/\s+/g, " ").trim() ?? "");
+        setStatus("ready");
+      }
     }
 
     void renderPage(loaded);

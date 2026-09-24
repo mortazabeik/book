@@ -84,6 +84,7 @@ function ReaderShell() {
     translation: string;
   } | null>(null);
   const [pageTranslation, setPageTranslation] = useState<string | null>(null);
+  const [pageText, setPageText] = useState("");
   const [floatCard, setFloatCard] = useState<{
     x: number;
     y: number;
@@ -349,10 +350,7 @@ function ReaderShell() {
             size="icon"
             aria-label="ترجمه کل صفحه"
             disabled={loading}
-            onClick={() => {
-              const text = document.querySelector(".pdf-page .textLayer")?.textContent ?? "";
-              void translatePage(text.replace(/\\s+/g, " ").trim());
-            }}
+            onClick={() => void translatePage(pageText)}
           >
             <Languages className="size-4" />
           </Button>
@@ -402,6 +400,7 @@ function ReaderShell() {
           onZoomChange={setZoom}
           translatedText={pageTranslation}
           onPageTextRequest={(text) => void translatePage(text)}
+          onPageTextReady={setPageText}
           onNumPages={(n) => {
             setNumPages(n);
             if (page > n) setPage(n);
