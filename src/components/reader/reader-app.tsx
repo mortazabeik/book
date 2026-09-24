@@ -289,7 +289,7 @@ function ReaderShell() {
     setError(null);
     try {
       let blocks = pageBlocks;
-      if (!blocks.length && pageImage) {
+      if (pageImage) {
         const { PaddleOCR } = await import("@paddleocr/paddleocr-js");
         const ocr = await PaddleOCR.create({
           lang: sourceLang === "auto" ? "en" : sourceLang,

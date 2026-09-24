@@ -400,10 +400,7 @@ export function PdfViewer({
   {translatedBlocks?.map((block, index) => {
   const blockWidth = Math.max(block.rect.width, 24);
   const originalFontSize = Math.max(block.fontSize, 10);
-  const fittedFontSize = Math.max(
-    7,
-    Math.min(originalFontSize, blockWidth / Math.max(block.translation.length * 0.62, 1)),
-  );
+  const fittedFontSize = originalFontSize;
   return (
   <div
   key={`${index}-${block.text.slice(0, 12)}`}
@@ -414,8 +411,7 @@ export function PdfViewer({
                 left: block.rect.left,
                 top: block.rect.top,
   width: blockWidth,
-  height: Math.max(block.rect.height, fittedFontSize * 1.15),
-  minHeight: fittedFontSize * 1.15,
+  minHeight: fittedFontSize * 1.35,
   fontSize: fittedFontSize,
                 fontFamily: block.fontFamily,
                 fontWeight: block.fontWeight,
