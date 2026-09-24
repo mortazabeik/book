@@ -853,10 +853,20 @@ function FieldSelect({
   options: { code: string; label: string }[];
 }) {
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const selected = options.find((option) => option.code === value) ?? options[0];
 
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [open]);
+
   return (
-    <div className="relative block">
+    <div ref={containerRef} className="relative block">
       <span className="mb-1.5 block text-[11px] text-subtle">{label}</span>
       <button
         type="button"
@@ -869,7 +879,7 @@ function FieldSelect({
         <ChevronDown className={cn("size-4 text-subtle transition-transform", open && "rotate-180")} />
       </button>
       {open ? (
-        <div className="language-options absolute inset-x-0 top-full z-50 mt-2 max-h-60 overflow-auto rounded-xl border border-border bg-elevated/75 p-1.5 shadow-[var(--shadow-float)] backdrop-blur-xl" role="listbox">
+        <div className="language-options absolute inset-x-0 top-full z-50 mt-2 max-h-60 overflow-auto rounded-xl p-0" role="listbox">
           {options.map((option) => (
             <button
               key={option.code}

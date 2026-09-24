@@ -138,6 +138,8 @@
 .language-options {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--accent) 58%, transparent) transparent;
+  background: transparent;
+  box-shadow: none;
 }
 
 .language-options::-webkit-scrollbar {
