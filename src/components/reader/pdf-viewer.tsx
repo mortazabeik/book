@@ -35,6 +35,7 @@ type PdfViewerProps = {
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   onPageText?: (text: string) => void;
+  onPageImage?: (image: Blob, size: { width: number; height: number; pixelWidth: number; pixelHeight: number }) => void;
   onTextItems?: (items: string[]) => void;
   onTextBlocks?: (blocks: TextBlock[]) => void;
   translatedBlocks?: Array<TextBlock & { translation: string }> | null;
@@ -50,6 +51,7 @@ export function PdfViewer({
   onNumPages,
   onSelection,
   onPageText,
+  onPageImage,
   onTextItems,
   onTextBlocks,
   translatedBlocks,
@@ -64,10 +66,12 @@ export function PdfViewer({
   const onNumPagesRef = useRef(onNumPages);
   const onSelectionRef = useRef(onSelection);
   const onPageTextRef = useRef(onPageText);
+  const onPageImageRef = useRef(onPageImage);
   const onTextItemsRef = useRef(onTextItems);
   onNumPagesRef.current = onNumPages;
   onSelectionRef.current = onSelection;
   onPageTextRef.current = onPageText;
+  onPageImageRef.current = onPageImage;
   onTextItemsRef.current = onTextItems;
   const onTextBlocksRef = useRef(onTextBlocks);
   onTextBlocksRef.current = onTextBlocks;
@@ -203,6 +207,14 @@ export function PdfViewer({
         return;
       }
       if (cancelled) return;
+
+      const imageBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (imageBlob) onPageImageRef.current?.(imageBlob, {
+        width: viewport.width,
+        height: viewport.height,
+        pixelWidth: canvas.width,
+        pixelHeight: canvas.height,
+      });
 
       const textContent = await pdfPage.getTextContent();
       if (cancelled) return;
@@ -385,26 +397,31 @@ export function PdfViewer({
         >
           <canvas ref={canvasRef} className={cn("pdf-canvas block h-full w-full", pdfDarkMode && "pdf-canvas-dark")} />
           <div ref={textLayerRef} className={cn("textLayer", translatedBlocks?.length && "translated-source-hidden")} />
-          {translatedBlocks?.map((block, index) => (
-            <div
-              key={`${index}-${block.text.slice(0, 12)}`}
-              className="translated-block"
+  {translatedBlocks?.map((block, index) => {
+  const blockWidth = Math.max(block.rect.width, 24);
+  const originalFontSize = Math.max(block.fontSize, 10);
+  const fittedFontSize = originalFontSize;
+  return (
+  <div
+  key={`${index}-${block.text.slice(0, 12)}`}
+  className="translated-block"
               dir="auto"
               aria-label="Translated paragraph"
               style={{
                 left: block.rect.left,
                 top: block.rect.top,
-                width: Math.max(block.rect.width, 24),
-                minHeight: block.rect.height,
-                fontSize: block.fontSize,
+  width: blockWidth,
+  minHeight: fittedFontSize * 1.35,
+  fontSize: fittedFontSize,
                 fontFamily: block.fontFamily,
                 fontWeight: block.fontWeight,
                 fontStyle: block.fontStyle,
               }}
-            >
-              {block.translation}
-            </div>
-          ))}
+  >
+  {block.translation}
+  </div>
+  );
+  })}
           {status === "loading" ? (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/80 text-sm text-muted">
               Opening page…
