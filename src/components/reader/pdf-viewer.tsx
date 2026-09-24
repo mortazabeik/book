@@ -273,16 +273,15 @@ export function PdfViewer({
           };
           previous.parts ??= [{ text: previous.text, rect: previous.rect }];
           const lastPart = previous.parts.at(-1);
-          if (lastPart) {
+          if (pendingLineBreak || !lastPart) {
+            previous.parts.push({ text: item.str.trim(), rect });
+          } else {
             lastPart.text = `${lastPart.text} ${item.str}`.replace(/\s+/g, " ").trim();
             const right = Math.max(lastPart.rect.left + lastPart.rect.width, rect.left + rect.width);
             const bottom = Math.max(lastPart.rect.top + lastPart.rect.height, rect.top + rect.height);
-            lastPart.rect = {
-              left: Math.min(lastPart.rect.left, rect.left),
-              top: Math.min(lastPart.rect.top, rect.top),
-              width: right - Math.min(lastPart.rect.left, rect.left),
-              height: bottom - Math.min(lastPart.rect.top, rect.top),
-            };
+            const left = Math.min(lastPart.rect.left, rect.left);
+            const top = Math.min(lastPart.rect.top, rect.top);
+            lastPart.rect = { left, top, width: right - left, height: bottom - top };
           }
         } else {
           blocks.push({
