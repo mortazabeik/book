@@ -3,6 +3,14 @@ const path = require("node:path");
 
 const startUrl = process.env.ELECTRON_START_URL || "http://localhost:8080";
 
+function loadApplication(window) {
+  if (app.isPackaged) {
+    void window.loadFile(path.join(process.resourcesPath, "app.asar", ".vercel", "output", "static", "index.html"));
+  } else {
+    void window.loadURL(startUrl);
+  }
+}
+
 function createWindow() {
   const window = new BrowserWindow({
     width: 1440,
@@ -26,7 +34,7 @@ function createWindow() {
     }
     return { action: "deny" };
   });
-  void window.loadURL(startUrl);
+  loadApplication(window);
 }
 
 app.whenReady().then(() => {

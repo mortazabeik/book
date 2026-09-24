@@ -7,9 +7,11 @@
   "build": {
     "appId": "com.morio.book",
     "productName": "Morio Book",
+    "icon": "build-assets/morio-book-icon.png",
     "asar": true,
     "files": [
       "electron/**/*",
+      "build-assets/**/*",
       "src/**/*",
       "public/**/*",
       "package.json",

@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Morio Sans";
+  src: url("/standard_fonts/LiberationSans-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Morio Sans";
+  src: url("/standard_fonts/LiberationSans-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -27,7 +43,7 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
-  --font-sans: "Vazirmatn", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Morio Sans", "Segoe UI", Arial, sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --header: #1688e8;
   --scroll-thumb: color-mix(in srgb, var(--accent) 38%, var(--bg-elevated));
