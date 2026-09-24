@@ -25,7 +25,7 @@ type PdfViewerProps = {
   onSelection: (payload: SelectionPayload | null) => void;
   onPageText?: (text: string) => void;
   onTextItems?: (items: string[]) => void;
-  translatedTextItems?: string[] | null;
+  translatedText?: string | null;
   className?: string;
 };
 
@@ -38,7 +38,7 @@ export function PdfViewer({
   onSelection,
   onPageText,
   onTextItems,
-  translatedTextItems,
+  translatedText,
   className,
 }: PdfViewerProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -222,18 +222,6 @@ export function PdfViewer({
     };
   }, [docGen, page, zoom, viewWidth]);
 
-  useEffect(() => {
-    const layer = textLayerRef.current;
-    if (!layer || !translatedTextItems) return;
-    const spans = [...layer.querySelectorAll<HTMLElement>("span")].filter(
-      (span) => span.textContent?.trim(),
-    );
-    spans.forEach((span, index) => {
-      const translated = translatedTextItems[index];
-      if (translated) span.textContent = translated;
-    });
-  }, [translatedTextItems]);
-
   function handleMouseUp(event: MouseEvent<HTMLDivElement>) {
     const layer = textLayerRef.current;
     if (!layer) return;
@@ -333,7 +321,12 @@ export function PdfViewer({
           }}
         >
           <canvas ref={canvasRef} className="pdf-canvas block h-full w-full" />
-          <div ref={textLayerRef} className="textLayer" />
+          <div ref={textLayerRef} className={cn("textLayer", translatedText && "opacity-0")} />
+          {translatedText ? (
+            <div className="translated-page-overlay" dir="auto" aria-label="ترجمه صفحه">
+              {translatedText}
+            </div>
+          ) : null}
           {status === "loading" ? (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/80 text-sm text-muted">
               در حال گشودن صفحه…

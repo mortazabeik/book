@@ -85,7 +85,7 @@ function ReaderShell() {
   } | null>(null);
   const [pageText, setPageText] = useState("");
   const [pageTextItems, setPageTextItems] = useState<string[]>([]);
-  const [translatedTextItems, setTranslatedTextItems] = useState<string[] | null>(null);
+  const [translatedPageText, setTranslatedPageText] = useState<string | null>(null);
   const [pageTranslating, setPageTranslating] = useState(false);
   const [floatCard, setFloatCard] = useState<{
     x: number;
@@ -235,7 +235,7 @@ function ReaderShell() {
 
   async function onPickFile(file: File | undefined) {
     if (!file) return;
-    setTranslatedTextItems(null);
+    setTranslatedPageText(null);
     setPageTextItems([]);
     await saveUploadedPdf(file);
     const buffer = await file.arrayBuffer();
@@ -246,7 +246,7 @@ function ReaderShell() {
   }
 
   async function restoreDefaultPdf() {
-    setTranslatedTextItems(null);
+    setTranslatedPageText(null);
     setPageTextItems([]);
     await clearUploadedPdf();
     setPdfSource("default");
@@ -260,15 +260,16 @@ function ReaderShell() {
     setPageTranslating(true);
     setError(null);
     try {
-      const translated = await Promise.all(
-        pageTextItems.map(async (text) => {
-          const res = await translateText({ data: { text, sourceLang, targetLang } });
-          return res.ok ? res.text : text;
-        }),
-      );
-      setTranslatedTextItems(translated);
-      setCurrent({ source: pageText, translation: translated.join(" ") });
-      addHistory({ source: pageText, translation: translated.join(" "), sourceLang, targetLang });
+      const res = await translateText({
+        data: { text: pageText, sourceLang, targetLang },
+      });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setTranslatedPageText(res.text);
+      setCurrent({ source: pageText, translation: res.text });
+      addHistory({ source: pageText, translation: res.text, sourceLang, targetLang });
       setSettingsOpen(false);
     } catch {
       setError("خطا در ترجمه صفحه. دوباره تلاش کنید.");
@@ -411,11 +412,8 @@ function ReaderShell() {
           }}
           onSelection={handleSelection}
             onPageText={setPageText}
-            onTextItems={(items) => {
-              setPageTextItems(items);
-              setTranslatedTextItems(null);
-            }}
-            translatedTextItems={translatedTextItems}
+            onTextItems={setPageTextItems}
+            translatedText={translatedPageText}
           className={split ? "md:col-span-7 min-h-0 max-md:min-h-0 max-md:flex-[1.2]" : ""}
         />
         {split ? (

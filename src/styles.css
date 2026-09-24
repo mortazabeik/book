@@ -130,6 +130,21 @@
   --total-scale-factor: 1;
 }
 
+.translated-page-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: auto;
+  padding: 8% 9%;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: clamp(0.82rem, 1.45vw, 1.12rem);
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
 .textLayer {
   position: absolute;
   inset: 0;
