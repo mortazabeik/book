@@ -68,6 +68,29 @@
   --radius-lg: var(--radius-lg);
 }
 
+.liquid-root {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.liquid-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 32%),
+    radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--muted) 28%, transparent), transparent 30%),
+    linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--bg-subtle) 78%, var(--accent)));
+}
+
+.liquid-panel {
+  background: color-mix(in srgb, var(--bg-elevated) 48%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
