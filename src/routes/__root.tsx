@@ -3,7 +3,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "ترجمان";
+const APP_NAME = "Morio Book";
 
 const THEME_BOOTSTRAP = `(function(){try{var r=localStorage.getItem("tarjomaan-settings");if(!r)return;var t=JSON.parse(r).state.theme;if(t==="dark")document.documentElement.classList.add("dark");}catch(e){}})();`;
 

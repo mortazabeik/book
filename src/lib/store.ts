@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type TranslateMode = "split" | "replace" | "float";
-export type ThemeMode = "light" | "dark";
+export type ThemeMode = "system" | "light" | "dark";
 
 export type HistoryItem = {
   id: string;
@@ -19,6 +19,7 @@ type SettingsState = {
   targetLang: string;
   mode: TranslateMode;
   autoTranslate: boolean;
+  pdfDarkMode: boolean;
   page: number;
   zoom: number;
   pdfSource: "default" | "upload";
@@ -29,6 +30,7 @@ type SettingsState = {
   setTargetLang: (code: string) => void;
   setMode: (mode: TranslateMode) => void;
   setAutoTranslate: (value: boolean) => void;
+  setPdfDarkMode: (value: boolean) => void;
   setPage: (page: number) => void;
   setZoom: (zoom: number) => void;
   setPdfSource: (source: "default" | "upload", name?: string) => void;
@@ -41,11 +43,12 @@ export const DEFAULT_PDF_URL = "/book.pdf";
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
-      theme: "light",
+      theme: "system",
       sourceLang: "auto",
       targetLang: "fa",
       mode: "split",
       autoTranslate: false,
+      pdfDarkMode: false,
       page: 1,
       zoom: 1,
       pdfSource: "default",
@@ -56,6 +59,7 @@ export const useSettings = create<SettingsState>()(
       setTargetLang: (targetLang) => set({ targetLang }),
       setMode: (mode) => set({ mode }),
       setAutoTranslate: (autoTranslate) => set({ autoTranslate }),
+      setPdfDarkMode: (pdfDarkMode) => set({ pdfDarkMode }),
       setPage: (page) => set({ page: Math.max(1, page) }),
       setZoom: (zoom) => set({ zoom: Math.min(2.4, Math.max(0.6, zoom)) }),
       setPdfSource: (pdfSource, name) =>
@@ -85,6 +89,7 @@ export const useSettings = create<SettingsState>()(
         targetLang: state.targetLang,
         mode: state.mode,
         autoTranslate: state.autoTranslate,
+        pdfDarkMode: state.pdfDarkMode,
         page: state.page,
         zoom: state.zoom,
         pdfSource: state.pdfSource,

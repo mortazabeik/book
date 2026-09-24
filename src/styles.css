@@ -9,7 +9,7 @@
   --fg: #1a1714;
   --muted: #6b645b;
   --subtle: #8c847a;
-  --accent: #3f6f64;
+  --accent: #1688e8;
   --accent-fg: #f7f4ee;
   --border: color-mix(in oklab, var(--fg) 12%, transparent);
   --paper: #fffdf8;
@@ -29,16 +29,20 @@
   --radius-lg: 16px;
   --font-sans: "Vazirmatn", "Segoe UI", system-ui, sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --header: #1688e8;
+  --scroll-thumb: color-mix(in srgb, var(--accent) 38%, var(--bg-elevated));
+  --scroll-track: color-mix(in srgb, var(--bg) 82%, transparent);
 }
 
 .dark {
+  --header: #08253f;
   --bg: #12110f;
   --bg-elevated: #1c1a17;
   --bg-subtle: #0e0d0c;
   --fg: #ece8e0;
   --muted: #a39b90;
   --subtle: #7d766c;
-  --accent: #8aa396;
+  --accent: #4eb6ff;
   --accent-fg: #12110f;
   --border: color-mix(in oklab, var(--fg) 14%, transparent);
   --paper: #1a1814;
@@ -85,10 +89,76 @@
     linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--bg-subtle) 78%, var(--accent)));
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--scroll-thumb);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 58%, var(--bg-elevated));
+  background-clip: padding-box;
+}
+
 .glass-panel {
   background: color-mix(in srgb, var(--bg-elevated) 48%, transparent);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+.translation-actions {
+  background: color-mix(in srgb, var(--header) 58%, transparent);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+.translation-action {
+  color: #fff;
+}
+
+.translation-action:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.language-options {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 58%, transparent) transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.language-options::-webkit-scrollbar {
+  width: 5px;
+}
+
+.language-options::-webkit-scrollbar-track,
+.language-options::-webkit-scrollbar-button {
+  background: transparent;
+}
+
+.language-options::-webkit-scrollbar-button {
+  display: none;
+}
+
+.language-options::-webkit-scrollbar-thumb {
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 58%, transparent);
 }
 
 @layer base {
@@ -122,7 +192,7 @@
   }
 }
 
-.dark .pdf-canvas {
+.pdf-canvas-dark {
   filter: invert(0.9) hue-rotate(180deg);
 }
 
