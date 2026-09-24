@@ -83,6 +83,8 @@ function ReaderShell() {
     source: string;
     translation: string;
   } | null>(null);
+  const [pageText, setPageText] = useState("");
+  const [pageTranslating, setPageTranslating] = useState(false);
   const [floatCard, setFloatCard] = useState<{
     x: number;
     y: number;
@@ -247,6 +249,36 @@ function ReaderShell() {
     dismissTransient();
   }
 
+  async function translateWholePage() {
+    const text = pageText.trim();
+    if (!text || pageTranslating) return;
+    setPageTranslating(true);
+    setError(null);
+    try {
+      const res = await translateText({
+        data: { text, sourceLang, targetLang },
+      });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setCurrent({ source: text, translation: res.text });
+      addHistory({ source: text, translation: res.text, sourceLang, targetLang });
+      if (mode === "float") {
+        setFloatCard({
+          x: Math.max(16, window.innerWidth / 2 - 160),
+          y: 72,
+          text: res.text,
+        });
+      }
+      setSettingsOpen(false);
+    } catch {
+      setError("خطا در ترجمه صفحه. دوباره تلاش کنید.");
+    } finally {
+      setPageTranslating(false);
+    }
+  }
+
   const split = mode === "split";
   const canPrev = page > 1;
   const canNext = page < numPages;
@@ -324,6 +356,15 @@ function ReaderShell() {
           </Button>
           <Button
             variant="ghost"
+            size="icon-sm"
+            aria-label="ترجمه کل صفحه"
+            disabled={pageTranslating || !pageText}
+            onClick={() => void translateWholePage()}
+          >
+            {pageTranslating ? <LoaderCircle className="size-4 animate-spin" /> : <Languages className="size-4" />}
+          </Button>
+          <Button
+            variant="ghost"
             size="icon"
             aria-label="باز کردن PDF دیگر"
             onClick={() => fileRef.current?.click()}
@@ -371,6 +412,7 @@ function ReaderShell() {
             if (page > n) setPage(n);
           }}
           onSelection={handleSelection}
+          onPageText={setPageText}
           className={split ? "md:col-span-7 min-h-0 max-md:min-h-0 max-md:flex-[1.2]" : ""}
         />
         {split ? (

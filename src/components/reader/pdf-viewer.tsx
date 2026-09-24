@@ -23,6 +23,7 @@ type PdfViewerProps = {
   onZoomChange: (zoom: number) => void;
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
+  onPageText?: (text: string) => void;
   className?: string;
 };
 
@@ -33,6 +34,7 @@ export function PdfViewer({
   onZoomChange,
   onNumPages,
   onSelection,
+  onPageText,
   className,
 }: PdfViewerProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -43,8 +45,10 @@ export function PdfViewer({
   const renderTaskRef = useRef<RenderTask | null>(null);
   const onNumPagesRef = useRef(onNumPages);
   const onSelectionRef = useRef(onSelection);
+  const onPageTextRef = useRef(onPageText);
   onNumPagesRef.current = onNumPages;
   onSelectionRef.current = onSelection;
+  onPageTextRef.current = onPageText;
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -180,6 +184,12 @@ export function PdfViewer({
 
       const textContent = await pdfPage.getTextContent();
       if (cancelled) return;
+      const pageText = textContent.items
+        .map((item) => ("str" in item && typeof item.str === "string" ? item.str : ""))
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      onPageTextRef.current?.(pageText);
       textLayerDiv.innerHTML = "";
       textLayerDiv.style.width = `${viewport.width}px`;
       textLayerDiv.style.height = `${viewport.height}px`;
