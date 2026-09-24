@@ -498,7 +498,7 @@ function ReaderShell() {
             variant="ghost"
             size="icon-sm"
             aria-label={translatedBlocks ? "Restore original" : "Translate page"}
-            disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)}
+            disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length && !pageImage)}
             onClick={() => void translateWholePage()}
           >
             {pageTranslating ? (

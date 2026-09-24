@@ -66,10 +66,12 @@ export function PdfViewer({
   const onNumPagesRef = useRef(onNumPages);
   const onSelectionRef = useRef(onSelection);
   const onPageTextRef = useRef(onPageText);
+  const onPageImageRef = useRef(onPageImage);
   const onTextItemsRef = useRef(onTextItems);
   onNumPagesRef.current = onNumPages;
   onSelectionRef.current = onSelection;
   onPageTextRef.current = onPageText;
+  onPageImageRef.current = onPageImage;
   onTextItemsRef.current = onTextItems;
   const onTextBlocksRef = useRef(onTextBlocks);
   onTextBlocksRef.current = onTextBlocks;
@@ -207,7 +209,7 @@ export function PdfViewer({
       if (cancelled) return;
 
       const imageBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-      if (imageBlob) onPageImage?.(imageBlob, {
+      if (imageBlob) onPageImageRef.current?.(imageBlob, {
         width: viewport.width,
         height: viewport.height,
         pixelWidth: canvas.width,
