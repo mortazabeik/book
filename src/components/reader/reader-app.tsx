@@ -194,9 +194,7 @@ function ReaderShell() {
             y: payload.mouseY,
             text: res.text,
           });
-          setReplace(null);
         } else {
-          setReplace(null);
           setFloatCard(null);
         }
         window.getSelection()?.removeAllRanges();
@@ -216,7 +214,6 @@ function ReaderShell() {
         setShowBtn(false);
         return;
       }
-      setReplace(null);
       setFloatCard(null);
       setPending(payload);
       setError(null);
@@ -692,7 +689,7 @@ function SettingsDialog({
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setZoom(zoom - 0.1)}
-                    aria-label="کوچک‌نمایی"
+                    aria-label="کوچ��‌نمایی"
                   >
                     <Minus className="size-4" />
                   </Button>
