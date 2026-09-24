@@ -9,7 +9,7 @@
   --fg: #1a1714;
   --muted: #6b645b;
   --subtle: #8c847a;
-  --accent: #3f6f64;
+  --accent: #1688e8;
   --accent-fg: #f7f4ee;
   --border: color-mix(in oklab, var(--fg) 12%, transparent);
   --paper: #fffdf8;
@@ -38,7 +38,7 @@
   --fg: #ece8e0;
   --muted: #a39b90;
   --subtle: #7d766c;
-  --accent: #8aa396;
+  --accent: #4eb6ff;
   --accent-fg: #12110f;
   --border: color-mix(in oklab, var(--fg) 14%, transparent);
   --paper: #1a1814;
@@ -122,7 +122,7 @@
   }
 }
 
-.dark .pdf-canvas {
+.pdf-canvas-dark {
   filter: invert(0.9) hue-rotate(180deg);
 }
 

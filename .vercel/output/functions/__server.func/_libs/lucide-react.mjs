@@ -82,19 +82,6 @@ var createLucideIcon = (iconName, iconNode) => {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-var BookOpen = createLucideIcon("book-open", [["path", {
-	d: "M12 7v14",
-	key: "1akyts"
-}], ["path", {
-	d: "M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z",
-	key: "ruj8y"
-}]]);
-/**
-* @license lucide-react v0.510.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
 var Check = createLucideIcon("check", [["path", {
 	d: "M20 6 9 17l-5-5",
 	key: "1gmf2c"
@@ -357,4 +344,4 @@ var X = createLucideIcon("x", [["path", {
 	key: "d8bk6v"
 }]]);
 //#endregion
-export { RotateCcw as a, Minus as c, FileUp as d, Copy as f, BookOpen as g, Check as h, Settings2 as i, LoaderCircle as l, ChevronLeft as m, TriangleAlert as n, Plus as o, ChevronRight as p, Sun as r, Moon as s, X as t, Languages as u };
+export { RotateCcw as a, Minus as c, FileUp as d, Copy as f, Check as h, Settings2 as i, LoaderCircle as l, ChevronLeft as m, TriangleAlert as n, Plus as o, ChevronRight as p, Sun as r, Moon as s, X as t, Languages as u };

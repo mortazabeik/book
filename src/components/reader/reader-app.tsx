@@ -57,6 +57,7 @@ export function ReaderApp() {
 
 function ReaderShell() {
   const theme = useSettings((s) => s.theme);
+  const pdfDarkMode = useSettings((s) => s.pdfDarkMode);
   const sourceLang = useSettings((s) => s.sourceLang);
   const targetLang = useSettings((s) => s.targetLang);
   const mode = useSettings((s) => s.mode);
@@ -98,9 +99,15 @@ function ReaderShell() {
   const fileRef = useRef<HTMLInputElement>(null);
   const translatingFor = useRef<string | null>(null);
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    document.documentElement.lang = "fa";
-    document.documentElement.dir = "rtl";
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const apply = () => {
+      document.documentElement.classList.toggle("dark", theme === "dark" || (theme === "system" && media.matches));
+    };
+    apply();
+    media.addEventListener("change", apply);
+    document.documentElement.lang = "en";
+    document.documentElement.dir = "ltr";
+    return () => media.removeEventListener("change", apply);
   }, [theme]);
 
   useEffect(() => {
@@ -300,11 +307,13 @@ function ReaderShell() {
       <div className="glass-backdrop" aria-hidden="true" />
       <header className="glass-panel flex shrink-0 items-center gap-2 border-b border-border px-2 py-1.5 sm:px-3">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="flex size-9 items-center justify-center rounded-md bg-accent/12 text-accent">
-            <BookOpen className="size-4" strokeWidth={1.75} />
-          </span>
+          <img
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Morio%20book-dark%20mod-YFq92plZKjHgqOzYtNJeFjEFHNHdeQ.png"
+            alt="Morio Book"
+            className="h-9 w-auto max-w-36 object-contain"
+          />
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium leading-tight">ترجمان</p>
+            <p className="truncate text-sm font-medium leading-tight">Morio Book</p>
             <p className="truncate text-[11px] text-subtle">
               {pdfSource === "upload" && uploadName ? uploadName : "book.pdf"}
             </p>
@@ -318,7 +327,7 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="صفحه قبل"
+            aria-label="Previous page"
             disabled={!canPrev}
             onClick={() => {
               setPage(page - 1);
@@ -430,7 +439,8 @@ function ReaderShell() {
             if (page > n) setPage(n);
           }}
           onSelection={handleSelection}
-            onPageText={setPageText}
+          pdfDarkMode={pdfDarkMode}
+          onPageText={setPageText}
   onTextItems={setPageTextItems}
           onTextBlocks={(blocks) => {
             setPageBlocks(blocks);
@@ -463,16 +473,26 @@ function ReaderShell() {
       </div>
 
       {showBtn && pending ? (
-        <button
-          type="button"
+        <div
           data-translation-ui=""
-          className="fixed z-40 flex h-10 items-center gap-1.5 rounded-full bg-accent px-3.5 text-sm font-medium text-accent-fg shadow-[var(--shadow-float)]"
+          className="fixed z-40 flex h-10 items-center gap-1.5 rounded-full bg-accent px-1.5 ps-3.5 text-sm font-medium text-accent-fg shadow-[var(--shadow-float)]"
           style={{ left: btnPos.x, top: btnPos.y }}
-          onClick={() => void runTranslate(pending)}
         >
-          <Languages className="size-3.5" />
-          ترجمه
-        </button>
+          <button type="button" className="flex items-center gap-1.5" onClick={() => void runTranslate(pending)}>
+            <Languages data-icon="inline-start" />
+            Translate
+          </button>
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-full hover:bg-accent-fg/15"
+            aria-label="Copy selected text"
+            onClick={async () => {
+              await navigator.clipboard.writeText(pending.text);
+            }}
+          >
+            <Copy data-icon="inline-start" />
+          </button>
+        </div>
       ) : null}
 
       {loading && mode !== "split" ? (
@@ -640,12 +660,14 @@ function SettingsDialog({
   const mode = useSettings((s) => s.mode);
   const autoTranslate = useSettings((s) => s.autoTranslate);
   const theme = useSettings((s) => s.theme);
+  const pdfDarkMode = useSettings((s) => s.pdfDarkMode);
   const zoom = useSettings((s) => s.zoom);
   const setSourceLang = useSettings((s) => s.setSourceLang);
   const setTargetLang = useSettings((s) => s.setTargetLang);
   const setMode = useSettings((s) => s.setMode);
   const setAutoTranslate = useSettings((s) => s.setAutoTranslate);
   const setTheme = useSettings((s) => s.setTheme);
+  const setPdfDarkMode = useSettings((s) => s.setPdfDarkMode);
   const setZoom = useSettings((s) => s.setZoom);
   const pdfSource = useSettings((s) => s.pdfSource);
 
@@ -721,10 +743,16 @@ function SettingsDialog({
                 </div>
                 <div className="flex rounded-lg bg-elevated p-0.5 shadow-[var(--shadow-border)]">
                   <ThemeChip
+                    active={theme === "system"}
+                    onClick={() => setTheme("system")}
+                    icon={<Settings2 className="size-3.5" />}
+                    label="System"
+                  />
+                  <ThemeChip
                     active={theme === "light"}
                     onClick={() => setTheme("light")}
                     icon={<Sun className="size-3.5" />}
-                    label="روشن"
+                    label="Light"
                   />
                   <ThemeChip
                     active={theme === "dark"}
@@ -733,6 +761,13 @@ function SettingsDialog({
                     label="تاریک"
                   />
                 </div>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-bg px-3 py-3 shadow-[var(--shadow-border)]">
+                <div>
+                  <p className="text-sm font-medium">Dark PDF mode</p>
+                  <p className="text-[11px] text-subtle">Apply dark rendering to the PDF only.</p>
+                </div>
+                <Switch checked={pdfDarkMode} onCheckedChange={setPdfDarkMode} aria-label="Dark PDF mode" />
               </div>
               <div className="flex items-center justify-between gap-3 rounded-xl bg-bg px-3 py-3 shadow-[var(--shadow-border)] sm:hidden">
                 <p className="text-sm font-medium">اندازه صفحه</p>

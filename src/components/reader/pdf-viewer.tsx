@@ -30,6 +30,7 @@ type PdfViewerProps = {
   source: string | ArrayBuffer | null;
   page: number;
   zoom: number;
+  pdfDarkMode: boolean;
   onZoomChange: (zoom: number) => void;
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
@@ -44,6 +45,7 @@ export function PdfViewer({
   source,
   page,
   zoom,
+  pdfDarkMode,
   onZoomChange,
   onNumPages,
   onSelection,
@@ -381,7 +383,7 @@ export function PdfViewer({
             ["--scale-round-y" as string]: "1px",
           }}
         >
-          <canvas ref={canvasRef} className="pdf-canvas block h-full w-full" />
+          <canvas ref={canvasRef} className={cn("pdf-canvas block h-full w-full", pdfDarkMode && "pdf-canvas-dark")} />
           <div ref={textLayerRef} className={cn("textLayer", translatedBlocks?.length && "translated-source-hidden")} />
           {translatedBlocks?.map((block, index) => (
             <div
