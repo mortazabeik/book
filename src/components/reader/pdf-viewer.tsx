@@ -24,7 +24,8 @@ type PdfViewerProps = {
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   onPageText?: (text: string) => void;
-  pageTranslation?: string | null;
+  onTextItems?: (items: string[]) => void;
+  translatedTextItems?: string[] | null;
   className?: string;
 };
 
@@ -36,7 +37,8 @@ export function PdfViewer({
   onNumPages,
   onSelection,
   onPageText,
-  pageTranslation,
+  onTextItems,
+  translatedTextItems,
   className,
 }: PdfViewerProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -48,9 +50,11 @@ export function PdfViewer({
   const onNumPagesRef = useRef(onNumPages);
   const onSelectionRef = useRef(onSelection);
   const onPageTextRef = useRef(onPageText);
+  const onTextItemsRef = useRef(onTextItems);
   onNumPagesRef.current = onNumPages;
   onSelectionRef.current = onSelection;
   onPageTextRef.current = onPageText;
+  onTextItemsRef.current = onTextItems;
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -192,6 +196,11 @@ export function PdfViewer({
         .replace(/\s+/g, " ")
         .trim();
       onPageTextRef.current?.(pageText);
+      onTextItemsRef.current?.(
+        textContent.items
+          .map((item) => ("str" in item && typeof item.str === "string" ? item.str : ""))
+          .filter(Boolean),
+      );
       textLayerDiv.innerHTML = "";
       textLayerDiv.style.width = `${viewport.width}px`;
       textLayerDiv.style.height = `${viewport.height}px`;
@@ -212,6 +221,18 @@ export function PdfViewer({
       renderTaskRef.current?.cancel();
     };
   }, [docGen, page, zoom, viewWidth]);
+
+  useEffect(() => {
+    const layer = textLayerRef.current;
+    if (!layer || !translatedTextItems) return;
+    const spans = [...layer.querySelectorAll<HTMLElement>("span")].filter(
+      (span) => span.textContent?.trim(),
+    );
+    spans.forEach((span, index) => {
+      const translated = translatedTextItems[index];
+      if (translated) span.textContent = translated;
+    });
+  }, [translatedTextItems]);
 
   function handleMouseUp(event: MouseEvent<HTMLDivElement>) {
     const layer = textLayerRef.current;
@@ -312,18 +333,7 @@ export function PdfViewer({
           }}
         >
           <canvas ref={canvasRef} className="pdf-canvas block h-full w-full" />
-          <div ref={textLayerRef} className={cn("textLayer", pageTranslation && "pointer-events-none opacity-0")} />
-          {pageTranslation ? (
-            <div
-              dir="auto"
-              className="absolute inset-0 z-[2] overflow-auto bg-paper px-[8%] py-[7%] text-fg"
-              onMouseUp={(event) => event.stopPropagation()}
-            >
-              <p className="whitespace-pre-wrap text-pretty text-[calc(10px+0.35vw)] leading-[1.9]">
-                {pageTranslation}
-              </p>
-            </div>
-          ) : null}
+          <div ref={textLayerRef} className="textLayer" />
           {status === "loading" ? (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/80 text-sm text-muted">
               در حال گشودن صفحه…

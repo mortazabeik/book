@@ -84,7 +84,8 @@ function ReaderShell() {
     translation: string;
   } | null>(null);
   const [pageText, setPageText] = useState("");
-  const [pageTranslation, setPageTranslation] = useState<string | null>(null);
+  const [pageTextItems, setPageTextItems] = useState<string[]>([]);
+  const [translatedTextItems, setTranslatedTextItems] = useState<string[] | null>(null);
   const [pageTranslating, setPageTranslating] = useState(false);
   const [floatCard, setFloatCard] = useState<{
     x: number;
@@ -234,7 +235,8 @@ function ReaderShell() {
 
   async function onPickFile(file: File | undefined) {
     if (!file) return;
-    setPageTranslation(null);
+    setTranslatedTextItems(null);
+    setPageTextItems([]);
     await saveUploadedPdf(file);
     const buffer = await file.arrayBuffer();
     setPdfSource("upload", file.name);
@@ -244,7 +246,8 @@ function ReaderShell() {
   }
 
   async function restoreDefaultPdf() {
-    setPageTranslation(null);
+    setTranslatedTextItems(null);
+    setPageTextItems([]);
     await clearUploadedPdf();
     setPdfSource("default");
     setPdfData(DEFAULT_PDF_URL);
@@ -253,28 +256,19 @@ function ReaderShell() {
   }
 
   async function translateWholePage() {
-    const text = pageText.trim();
-    if (!text || pageTranslating) return;
+    if (!pageTextItems.length || pageTranslating) return;
     setPageTranslating(true);
     setError(null);
     try {
-      const res = await translateText({
-        data: { text, sourceLang, targetLang },
-      });
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
-      setPageTranslation(res.text);
-      setCurrent({ source: text, translation: res.text });
-      addHistory({ source: text, translation: res.text, sourceLang, targetLang });
-      if (mode === "float") {
-        setFloatCard({
-          x: Math.max(16, window.innerWidth / 2 - 160),
-          y: 72,
-          text: res.text,
-        });
-      }
+      const translated = await Promise.all(
+        pageTextItems.map(async (text) => {
+          const res = await translateText({ data: { text, sourceLang, targetLang } });
+          return res.ok ? res.text : text;
+        }),
+      );
+      setTranslatedTextItems(translated);
+      setCurrent({ source: pageText, translation: translated.join(" ") });
+      addHistory({ source: pageText, translation: translated.join(" "), sourceLang, targetLang });
       setSettingsOpen(false);
     } catch {
       setError("خطا در ترجمه صفحه. دوباره تلاش کنید.");
@@ -362,7 +356,7 @@ function ReaderShell() {
             variant="ghost"
             size="icon-sm"
             aria-label="ترجمه کل صفحه"
-            disabled={pageTranslating || !pageText}
+            disabled={pageTranslating || !pageTextItems.length}
             onClick={() => void translateWholePage()}
           >
             {pageTranslating ? <LoaderCircle className="size-4 animate-spin" /> : <Languages className="size-4" />}
@@ -416,8 +410,12 @@ function ReaderShell() {
             if (page > n) setPage(n);
           }}
           onSelection={handleSelection}
-          onPageText={setPageText}
-          pageTranslation={pageTranslation}
+            onPageText={setPageText}
+            onTextItems={(items) => {
+              setPageTextItems(items);
+              setTranslatedTextItems(null);
+            }}
+            translatedTextItems={translatedTextItems}
           className={split ? "md:col-span-7 min-h-0 max-md:min-h-0 max-md:flex-[1.2]" : ""}
         />
         {split ? (
