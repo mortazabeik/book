@@ -92,6 +92,16 @@ var Check = createLucideIcon("check", [["path", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var ChevronDown = createLucideIcon("chevron-down", [["path", {
+	d: "m6 9 6 6 6-6",
+	key: "qrunsl"
+}]]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var ChevronLeft = createLucideIcon("chevron-left", [["path", {
 	d: "m15 18-6-6 6-6",
 	key: "1wnfg3"
@@ -344,4 +354,4 @@ var X = createLucideIcon("x", [["path", {
 	key: "d8bk6v"
 }]]);
 //#endregion
-export { RotateCcw as a, Minus as c, FileUp as d, Copy as f, Check as h, Settings2 as i, LoaderCircle as l, ChevronLeft as m, TriangleAlert as n, Plus as o, ChevronRight as p, Sun as r, Moon as s, X as t, Languages as u };
+export { RotateCcw as a, Minus as c, FileUp as d, Copy as f, Check as g, ChevronDown as h, Settings2 as i, LoaderCircle as l, ChevronLeft as m, TriangleAlert as n, Plus as o, ChevronRight as p, Sun as r, Moon as s, X as t, Languages as u };

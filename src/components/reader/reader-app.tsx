@@ -16,6 +16,7 @@ import {
   Settings2,
   Sun,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -474,7 +475,7 @@ function ReaderShell() {
       {showBtn && pending ? (
         <div
           data-translation-ui=""
-          className="fixed z-40 flex h-10 items-center gap-1 rounded-full border border-white/20 bg-accent p-1 text-sm font-medium text-accent-fg shadow-[var(--shadow-float)]"
+          className="fixed z-40 flex h-10 items-center gap-1 rounded-full border border-white/20 bg-[#08253f] p-1 text-sm font-medium text-white shadow-[var(--shadow-float)]"
           style={{ left: btnPos.x, top: btnPos.y }}
         >
           <button
@@ -493,7 +494,7 @@ function ReaderShell() {
               await navigator.clipboard.writeText(pending.text);
             }}
           >
-            <Copy data-icon="inline-start" />
+            <Copy className="size-3.5" />
           </button>
         </div>
       ) : null}
@@ -832,21 +833,46 @@ function FieldSelect({
   onChange: (value: string) => void;
   options: { code: string; label: string }[];
 }) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.code === value) ?? options[0];
+
   return (
-    <label className="block">
+    <div className="relative block">
       <span className="mb-1.5 block text-[11px] text-subtle">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-border bg-bg-elevated px-3 text-sm text-fg shadow-[var(--shadow-border)] outline-none transition-colors hover:border-accent/45 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25"
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className="flex h-11 w-full items-center justify-between rounded-xl border border-border bg-bg-elevated px-3 text-start text-sm text-fg shadow-[var(--shadow-border)] outline-none transition-colors hover:border-accent/55 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25"
       >
-        {options.map((option) => (
-          <option key={option.code} value={option.code}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+        <span>{selected?.label}</span>
+        <ChevronDown className={cn("size-4 text-subtle transition-transform", open && "rotate-180")} />
+      </button>
+      {open ? (
+        <div className="absolute inset-x-0 top-full z-50 mt-2 max-h-60 overflow-auto rounded-xl border border-border bg-elevated p-1.5 shadow-[var(--shadow-float)]" role="listbox">
+          {options.map((option) => (
+            <button
+              key={option.code}
+              type="button"
+              role="option"
+              aria-selected={option.code === value}
+              onClick={() => {
+                onChange(option.code);
+                setOpen(false);
+              }}
+              className={cn(
+                "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-start text-sm text-fg transition-colors hover:bg-accent/10",
+                option.code === value && "bg-accent/15 font-medium text-accent",
+              )}
+            >
+              {option.label}
+              {option.code === value ? <Check className="size-4" /> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
