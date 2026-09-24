@@ -84,6 +84,7 @@ function ReaderShell() {
     translation: string;
   } | null>(null);
   const [pageText, setPageText] = useState("");
+  const [pageTranslation, setPageTranslation] = useState<string | null>(null);
   const [pageTranslating, setPageTranslating] = useState(false);
   const [floatCard, setFloatCard] = useState<{
     x: number;
@@ -233,6 +234,7 @@ function ReaderShell() {
 
   async function onPickFile(file: File | undefined) {
     if (!file) return;
+    setPageTranslation(null);
     await saveUploadedPdf(file);
     const buffer = await file.arrayBuffer();
     setPdfSource("upload", file.name);
@@ -242,6 +244,7 @@ function ReaderShell() {
   }
 
   async function restoreDefaultPdf() {
+    setPageTranslation(null);
     await clearUploadedPdf();
     setPdfSource("default");
     setPdfData(DEFAULT_PDF_URL);
@@ -262,6 +265,7 @@ function ReaderShell() {
         setError(res.error);
         return;
       }
+      setPageTranslation(res.text);
       setCurrent({ source: text, translation: res.text });
       addHistory({ source: text, translation: res.text, sourceLang, targetLang });
       if (mode === "float") {
@@ -413,6 +417,7 @@ function ReaderShell() {
           }}
           onSelection={handleSelection}
           onPageText={setPageText}
+          pageTranslation={pageTranslation}
           className={split ? "md:col-span-7 min-h-0 max-md:min-h-0 max-md:flex-[1.2]" : ""}
         />
         {split ? (

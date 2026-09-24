@@ -24,6 +24,7 @@ type PdfViewerProps = {
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   onPageText?: (text: string) => void;
+  pageTranslation?: string | null;
   className?: string;
 };
 
@@ -35,6 +36,7 @@ export function PdfViewer({
   onNumPages,
   onSelection,
   onPageText,
+  pageTranslation,
   className,
 }: PdfViewerProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -310,7 +312,18 @@ export function PdfViewer({
           }}
         >
           <canvas ref={canvasRef} className="pdf-canvas block h-full w-full" />
-          <div ref={textLayerRef} className="textLayer" />
+          <div ref={textLayerRef} className={cn("textLayer", pageTranslation && "pointer-events-none opacity-0")} />
+          {pageTranslation ? (
+            <div
+              dir="auto"
+              className="absolute inset-0 z-[2] overflow-auto bg-paper px-[8%] py-[7%] text-fg"
+              onMouseUp={(event) => event.stopPropagation()}
+            >
+              <p className="whitespace-pre-wrap text-pretty text-[calc(10px+0.35vw)] leading-[1.9]">
+                {pageTranslation}
+              </p>
+            </div>
+          ) : null}
           {status === "loading" ? (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/80 text-sm text-muted">
               در حال گشودن صفحه…
