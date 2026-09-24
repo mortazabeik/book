@@ -2141,21 +2141,6 @@ var DialogTitle = /* @__PURE__ */ import_react.forwardRef(/* @__PURE__ */ __name
 		ref: forwardedRef
 	});
 }, "DialogTitle"));
-var DESCRIPTION_NAME = "DialogDescription";
-var DialogDescription = /* @__PURE__ */ import_react.forwardRef(/* @__PURE__ */ __name(function DialogDescription2(props, forwardedRef) {
-	const { __scopeDialog, ...descriptionProps } = props;
-	const context = useDialogContext(DESCRIPTION_NAME, __scopeDialog);
-	const { setDescriptionCount } = context;
-	useLayoutEffect2(() => {
-		setDescriptionCount((count) => count + 1);
-		return () => setDescriptionCount((count) => count - 1);
-	}, [setDescriptionCount]);
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Primitive.p, {
-		id: context.descriptionId,
-		...descriptionProps,
-		ref: forwardedRef
-	});
-}, "DialogDescription"));
 var CLOSE_NAME = "DialogClose";
 var DialogClose = /* @__PURE__ */ import_react.forwardRef(/* @__PURE__ */ __name(function DialogClose2(props, forwardedRef) {
 	const { __scopeDialog, ...closeProps } = props;
@@ -2172,4 +2157,4 @@ function getState(open) {
 }
 __name(getState, "getState");
 //#endregion
-export { DialogOverlay as a, Primitive as c, require_react_dom as d, DialogDescription as i, useControllableState as l, DialogClose as n, DialogPortal as o, DialogContent as r, DialogTitle as s, Dialog as t, useLayoutEffect2 as u };
+export { DialogPortal as a, useControllableState as c, DialogOverlay as i, useLayoutEffect2 as l, DialogClose as n, DialogTitle as o, DialogContent as r, Primitive as s, Dialog as t, require_react_dom as u };

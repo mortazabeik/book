@@ -135,6 +135,30 @@
   background: rgba(255, 255, 255, 0.16);
 }
 
+.language-options {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 58%, transparent) transparent;
+}
+
+.language-options::-webkit-scrollbar {
+  width: 5px;
+}
+
+.language-options::-webkit-scrollbar-track,
+.language-options::-webkit-scrollbar-button {
+  background: transparent;
+}
+
+.language-options::-webkit-scrollbar-button {
+  display: none;
+}
+
+.language-options::-webkit-scrollbar-thumb {
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 58%, transparent);
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;

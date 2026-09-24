@@ -81,6 +81,12 @@ function ReaderShell() {
   const [showBtn, setShowBtn] = useState(false);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [btnPos, setBtnPos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (!copyDialogOpen) return;
+    const timeout = window.setTimeout(() => setCopyDialogOpen(false), 2600);
+    return () => window.clearTimeout(timeout);
+  }, [copyDialogOpen]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState<{
@@ -562,16 +568,15 @@ function ReaderShell() {
         }}
       />
 
-      <Dialog.Root open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/20 backdrop-blur-[2px]" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(90vw,360px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-elevated p-5 text-center text-fg shadow-[var(--shadow-float)] outline-none">
-            <Dialog.Title className="text-base font-semibold">Copied successfully</Dialog.Title>
-            <Dialog.Description className="mt-2 text-sm text-muted">The selected text is now on your clipboard.</Dialog.Description>
-            <Dialog.Close className="mt-4 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-fg">Done</Dialog.Close>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      {copyDialogOpen ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-4 left-4 z-50 rounded-xl border border-border bg-elevated/75 px-3.5 py-2.5 text-sm text-fg shadow-[var(--shadow-float)] backdrop-blur-xl"
+        >
+          Copied successfully
+        </div>
+      ) : null}
 
       <SettingsDialog
         open={settingsOpen}
@@ -864,7 +869,7 @@ function FieldSelect({
         <ChevronDown className={cn("size-4 text-subtle transition-transform", open && "rotate-180")} />
       </button>
       {open ? (
-        <div className="absolute inset-x-0 top-full z-50 mt-2 max-h-60 overflow-auto rounded-xl border border-border bg-elevated/75 p-1.5 shadow-[var(--shadow-float)] backdrop-blur-xl" role="listbox">
+        <div className="language-options absolute inset-x-0 top-full z-50 mt-2 max-h-60 overflow-auto rounded-xl border border-border bg-elevated/75 p-1.5 shadow-[var(--shadow-float)] backdrop-blur-xl" role="listbox">
           {options.map((option) => (
             <button
               key={option.code}
