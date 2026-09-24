@@ -21,10 +21,6 @@ type PdfViewerProps = {
   page: number;
   zoom: number;
   onZoomChange: (zoom: number) => void;
-  translatedText: string | null;
-  onPageTextRequest: (text: string) => void;
-  onPageTextReady: (text: string) => void;
-  onPageImageReady: (image: string) => void;
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   className?: string;
@@ -35,10 +31,6 @@ export function PdfViewer({
   page,
   zoom,
   onZoomChange,
-  translatedText,
-  onPageTextRequest,
-  onPageTextReady,
-  onPageImageReady,
   onNumPages,
   onSelection,
   className,
@@ -198,8 +190,6 @@ export function PdfViewer({
       });
       await textLayer.render();
       if (!cancelled) {
-        onPageTextReady(textLayerDiv.textContent?.replace(/\s+/g, " ").trim() ?? "");
-        onPageImageReady(canvas.toDataURL("image/png"));
         setStatus("ready");
       }
     }
@@ -210,15 +200,6 @@ export function PdfViewer({
       renderTaskRef.current?.cancel();
     };
   }, [docGen, page, zoom, viewWidth]);
-
-  function handlePageTextRequest() {
-    const text = textLayerRef.current?.textContent?.replace(/\\s+/g, " ").trim();
-    if (!text) {
-      onSelectionRef.current(null);
-      return;
-    }
-    onPageTextRequest(text);
-  }
 
   function handleMouseUp(event: MouseEvent<HTMLDivElement>) {
     const layer = textLayerRef.current;
@@ -257,36 +238,6 @@ export function PdfViewer({
       rects,
     });
   }
-
-  useEffect(() => {
-    const layer = textLayerRef.current;
-    if (!layer || !translatedText) return;
-    const textNodes = [...layer.querySelectorAll<HTMLElement>("span")].flatMap((element) => {
-      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-      const nodes: Text[] = [];
-      let node = walker.nextNode();
-      while (node) {
-        if (node.textContent?.trim()) nodes.push(node as Text);
-        node = walker.nextNode();
-      }
-      return nodes;
-    });
-    if (!textNodes.length) return;
-    const lengths = textNodes.map((node) => node.data.length);
-    const total = lengths.reduce((sum, length) => sum + length, 0) || 1;
-    let start = 0;
-    textNodes.forEach((node, index) => {
-      const end = index === textNodes.length - 1
-        ? translatedText.length
-        : Math.round(start + (translatedText.length * lengths[index]) / total);
-      node.data = translatedText.slice(start, end);
-      start = end;
-    });
-    textNodes.forEach((node) => {
-      const element = node.parentElement;
-      if (element) element.dir = "auto";
-    });
-  }, [translatedText, pageSize]);
 
   const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());

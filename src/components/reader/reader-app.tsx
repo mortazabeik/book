@@ -29,7 +29,7 @@ import {
   DEFAULT_PDF_URL,
   useSettings,
 } from "@/lib/store";
-import { translateImage, translateText } from "@/lib/translate";
+import { translateText } from "@/lib/translate";
 import { cn } from "@/lib/utils";
 import {
   PdfViewer,
@@ -83,9 +83,6 @@ function ReaderShell() {
     source: string;
     translation: string;
   } | null>(null);
-  const [pageTranslation, setPageTranslation] = useState<string | null>(null);
-  const [pageText, setPageText] = useState("");
-  const [pageImage, setPageImage] = useState<string | null>(null);
   const [floatCard, setFloatCard] = useState<{
     x: number;
     y: number;
@@ -242,25 +239,6 @@ function ReaderShell() {
     dismissTransient();
   }
 
-  const translatePage = useCallback(
-    async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = pageImage
-          ? await translateImage({ data: { image: pageImage, sourceLang, targetLang } })
-          : await translateText({ data: { text: pageText, sourceLang, targetLang } });
-        if (res.ok) setPageTranslation(res.text);
-        else setError(res.error);
-      } catch {
-        setError("ترجمه صفحه انجام نشد. دوباره تلاش کنید.");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [pageImage, pageText, sourceLang, targetLang],
-  );
-
   async function restoreDefaultPdf() {
     await clearUploadedPdf();
     setPdfSource("default");
@@ -347,15 +325,6 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="ترجمه کل صفحه"
-            disabled={loading}
-            onClick={() => void translatePage()}
-          >
-            <Languages className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
             aria-label="باز کردن PDF دیگر"
             onClick={() => fileRef.current?.click()}
           >
@@ -397,10 +366,6 @@ function ReaderShell() {
           page={Math.min(page, numPages)}
           zoom={zoom}
           onZoomChange={setZoom}
-          translatedText={pageTranslation}
-          onPageTextRequest={(text) => void translatePage(text)}
-          onPageTextReady={setPageText}
-          onPageImageReady={setPageImage}
           onNumPages={(n) => {
             setNumPages(n);
             if (page > n) setPage(n);
