@@ -6,13 +6,19 @@ app.commandLine.appendSwitch("enable-features", "CSSBackdropFilter");
 
 let localServer;
 
-ipcMain.on("window:minimize", (event) => BrowserWindow.fromWebContents(event.sender)?.minimize());
-ipcMain.on("window:toggle-maximize", (event) => {
+ipcMain.handle("window:minimize", (event) => {
+  BrowserWindow.fromWebContents(event.sender)?.minimize();
+});
+
+ipcMain.handle("window:toggle-maximize", (event) => {
   const window = BrowserWindow.fromWebContents(event.sender);
   if (window?.isMaximized()) window.unmaximize();
   else window?.maximize();
 });
-ipcMain.on("window:close", (event) => BrowserWindow.fromWebContents(event.sender)?.close());
+
+ipcMain.handle("window:close", (event) => {
+  BrowserWindow.fromWebContents(event.sender)?.close();
+});
 
 const startUrl = process.env.ELECTRON_START_URL || "http://localhost:8080";
 
@@ -47,7 +53,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
     },
   });
 

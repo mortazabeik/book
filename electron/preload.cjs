@@ -4,8 +4,8 @@ contextBridge.exposeInMainWorld("morioDesktop", {
   platform: process.platform,
   isDesktop: true,
   windowControls: {
-    minimize: () => ipcRenderer.send("window:minimize"),
-    toggleMaximize: () => ipcRenderer.send("window:toggle-maximize"),
-    close: () => ipcRenderer.send("window:close"),
+    minimize: () => ipcRenderer.invoke("window:minimize"),
+    toggleMaximize: () => ipcRenderer.invoke("window:toggle-maximize"),
+    close: () => ipcRenderer.invoke("window:close"),
   },
 });
