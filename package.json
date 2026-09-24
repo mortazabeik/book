@@ -1,8 +1,40 @@
 {
-  "name": "app-builder-workspace",
+  "name": "morio-book",
+  "version": "1.0.0",
+  "description": "Morio Book",
+  "author": "morio",
   "private": true,
   "sideEffects": false,
   "type": "module",
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "com.morio.book",
+    "productName": "Morio Book",
+    "icon": "build-assets/morio-book-icon.png",
+    "asar": true,
+    "files": [
+      "electron/**/*",
+      "build-assets/**/*",
+      "src/**/*",
+      "public/**/*",
+      "package.json",
+      "vite.config.ts",
+      "dist/**/*",
+      ".vercel/output/**/*"
+    ],
+    "win": {
+      "target": ["nsis", "portable"],
+      "artifactName": "Morio-Book-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "directories": {
+      "output": "release"
+    }
+  },
   "overrides": {
     "nf3": "0.3.17"
   },
@@ -14,6 +46,8 @@
     "preview": "node scripts/with-app-env.mjs vite preview",
     "preview:restart": "node scripts/preview.mjs restart",
     "preview:stop": "node scripts/preview.mjs stop",
+    "desktop": "npm run build && electron-builder --win",
+    "desktop:dev": "electron electron/main.cjs",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
     "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts",
@@ -82,6 +116,8 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
