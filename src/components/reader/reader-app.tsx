@@ -29,7 +29,7 @@ import {
   DEFAULT_PDF_URL,
   useSettings,
 } from "@/lib/store";
-import { translateText } from "@/lib/translate";
+import { translateImage, translateText } from "@/lib/translate";
 import { cn } from "@/lib/utils";
 import {
   PdfViewer,
@@ -85,6 +85,7 @@ function ReaderShell() {
   } | null>(null);
   const [pageTranslation, setPageTranslation] = useState<string | null>(null);
   const [pageText, setPageText] = useState("");
+  const [pageImage, setPageImage] = useState<string | null>(null);
   const [floatCard, setFloatCard] = useState<{
     x: number;
     y: number;
@@ -242,24 +243,22 @@ function ReaderShell() {
   }
 
   const translatePage = useCallback(
-    async (text: string) => {
-      if (!text.trim()) {
-        setError("متنی برای ترجمه در این صفحه پیدا نشد");
-        return;
-      }
+    async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await translateText({ data: { text, sourceLang, targetLang } });
+        const res = pageImage
+          ? await translateImage({ data: { image: pageImage, sourceLang, targetLang } })
+          : await translateText({ data: { text: pageText, sourceLang, targetLang } });
         if (res.ok) setPageTranslation(res.text);
         else setError(res.error);
       } catch {
-        setError("ترجمه انجام نشد. دوباره تلاش کنید.");
+        setError("ترجمه صفحه انجام نشد. دوباره تلاش کنید.");
       } finally {
         setLoading(false);
       }
     },
-    [sourceLang, targetLang],
+    [pageImage, pageText, sourceLang, targetLang],
   );
 
   async function restoreDefaultPdf() {
@@ -350,7 +349,7 @@ function ReaderShell() {
             size="icon"
             aria-label="ترجمه کل صفحه"
             disabled={loading}
-            onClick={() => void translatePage(pageText)}
+            onClick={() => void translatePage()}
           >
             <Languages className="size-4" />
           </Button>
@@ -401,6 +400,7 @@ function ReaderShell() {
           translatedText={pageTranslation}
           onPageTextRequest={(text) => void translatePage(text)}
           onPageTextReady={setPageText}
+          onPageImageReady={setPageImage}
           onNumPages={(n) => {
             setNumPages(n);
             if (page > n) setPage(n);

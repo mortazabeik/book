@@ -24,6 +24,7 @@ type PdfViewerProps = {
   translatedText: string | null;
   onPageTextRequest: (text: string) => void;
   onPageTextReady: (text: string) => void;
+  onPageImageReady: (image: string) => void;
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   className?: string;
@@ -37,6 +38,7 @@ export function PdfViewer({
   translatedText,
   onPageTextRequest,
   onPageTextReady,
+  onPageImageReady,
   onNumPages,
   onSelection,
   className,
@@ -197,6 +199,7 @@ export function PdfViewer({
       await textLayer.render();
       if (!cancelled) {
         onPageTextReady(textLayerDiv.textContent?.replace(/\s+/g, " ").trim() ?? "");
+        onPageImageReady(canvas.toDataURL("image/png"));
         setStatus("ready");
       }
     }
@@ -326,7 +329,7 @@ export function PdfViewer({
       ref={scrollerRef}
       dir="ltr"
       className={cn("relative min-h-0 flex-1 overflow-auto bg-bg-subtle", className)}
-      style={{ touchAction: "pan-x pan-y" }}
+      style={{ touchAction: "pan-x pan-y", overscrollBehavior: "contain" }}
       onMouseUp={handleMouseUp}
       onWheel={handleWheel}
       onPointerDown={handlePointerDown}

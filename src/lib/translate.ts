@@ -11,6 +11,47 @@ type TranslateInput = {
   targetLang: string;
 };
 
+type ImageTranslateInput = {
+  image: string;
+  sourceLang: string;
+  targetLang: string;
+};
+
+function sanitizeImageInput(input: unknown): ImageTranslateInput {
+  const data = input as Partial<ImageTranslateInput>;
+  const image = typeof data.image === "string" ? data.image : "";
+  if (!image.startsWith("data:image/")) throw new Error("تصویر صفحه معتبر نیست");
+  return {
+    image: image.slice(0, 8_000_000),
+    sourceLang: typeof data.sourceLang === "string" ? data.sourceLang : "auto",
+    targetLang: typeof data.targetLang === "string" ? data.targetLang : "fa",
+  };
+}
+
+async function extractTextFromImage(input: ImageTranslateInput): Promise<string | null> {
+  const form = new FormData();
+  form.append("base64Image", input.image);
+  form.append("language", input.sourceLang === "auto" ? "eng" : input.sourceLang);
+  form.append("isOverlayRequired", "false");
+  form.append("OCREngine", "2");
+  const response = await fetch("https://api.ocr.space/parse/image", {
+    method: "POST",
+    headers: { apikey: "helloworld" },
+    body: form,
+  });
+  if (!response.ok) return null;
+  const body = (await response.json()) as {
+    IsErroredOnProcessing?: boolean;
+    ParsedResults?: { ParsedText?: string }[];
+  };
+  if (body.IsErroredOnProcessing) return null;
+  const text = body.ParsedResults?.map((result) => result.ParsedText ?? "")
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return text || null;
+}
+
 function sanitizeInput(input: unknown): TranslateInput {
   const data = input as Partial<TranslateInput>;
   const text = typeof data.text === "string" ? data.text.trim() : "";
@@ -87,6 +128,30 @@ async function translateWithGoogle(
   const detected = typeof data[2] === "string" ? data[2] : undefined;
   return { text, detected };
 }
+
+export const translateImage = createServerFn({ method: "POST" })
+  .validator(sanitizeImageInput)
+  .handler(async ({ data }): Promise<TranslateResult> => {
+    try {
+      const text = await extractTextFromImage(data);
+      if (!text) return { ok: false, error: "متنی از تصویر صفحه خوانده نشد" };
+      const translated = await translateWithGoogle({
+        text,
+        sourceLang: data.sourceLang,
+        targetLang: data.targetLang,
+      });
+      if (translated) return { ok: true, text: translated.text, detected: translated.detected };
+      const grok = await translateWithGrok({
+        text,
+        sourceLang: data.sourceLang,
+        targetLang: data.targetLang,
+      });
+      if (grok) return { ok: true, text: grok };
+      return { ok: false, error: "ترجمه در حال حاضر در دسترس نیست" };
+    } catch {
+      return { ok: false, error: "خطا در خواندن یا ترجمه تصویر صفحه" };
+    }
+  });
 
 export const translateText = createServerFn({ method: "POST" })
   .validator(sanitizeInput)
