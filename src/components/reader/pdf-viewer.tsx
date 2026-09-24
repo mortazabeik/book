@@ -20,6 +20,7 @@ type PdfViewerProps = {
   source: string | ArrayBuffer | null;
   page: number;
   zoom: number;
+  onZoomChange: (zoom: number) => void;
   replaceText: string | null;
   replaceRects: OverlayRect[] | null;
   onNumPages: (n: number) => void;
@@ -31,6 +32,7 @@ export function PdfViewer({
   source,
   page,
   zoom,
+  onZoomChange,
   replaceText,
   replaceRects,
   onNumPages,
@@ -241,12 +243,50 @@ export function PdfViewer({
 
   const box = boundingBox(replaceRects);
 
+  useEffect(() => {
+    const layer = textLayerRef.current;
+    if (!layer || !replaceText || !replaceRects?.length) return;
+    const pageBox = pageRef.current?.getBoundingClientRect();
+    if (!pageBox) return;
+    const selected = replaceRects.map((rect) => ({
+      left: pageBox.left + rect.left,
+      top: pageBox.top + rect.top,
+      right: pageBox.left + rect.left + rect.width,
+      bottom: pageBox.top + rect.top + rect.height,
+    }));
+    const spans = [...layer.querySelectorAll<HTMLElement>("span")];
+    const matches = spans.filter((span) => {
+      const rect = span.getBoundingClientRect();
+      return selected.some(
+        (target) =>
+          rect.left < target.right &&
+          rect.right > target.left &&
+          rect.top < target.bottom &&
+          rect.bottom > target.top,
+      );
+    });
+    if (!matches.length) return;
+    matches.forEach((span, index) => {
+      span.textContent = index === 0 ? replaceText : "";
+      span.style.color = index === 0 ? "var(--fg)" : "transparent";
+      span.style.whiteSpace = "normal";
+      span.style.zIndex = "2";
+    });
+  }, [replaceText, replaceRects, pageSize]);
+
+  function handleWheel(event: React.WheelEvent<HTMLDivElement>) {
+    if (!event.ctrlKey) return;
+    event.preventDefault();
+    onZoomChange(zoom + (event.deltaY < 0 ? 0.1 : -0.1));
+  }
+
   return (
     <div
       ref={scrollerRef}
       dir="ltr"
       className={cn("relative min-h-0 flex-1 overflow-auto bg-bg-subtle", className)}
       onMouseUp={handleMouseUp}
+      onWheel={handleWheel}
     >
       <div className="flex min-h-full justify-center p-4 sm:p-6">
         <div

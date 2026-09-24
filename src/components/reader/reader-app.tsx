@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { LiquidGlass } from "@ybouane/liquidglass";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   BookOpen,
@@ -95,6 +96,30 @@ function ReaderShell() {
   } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const translatingFor = useRef<string | null>(null);
+  const liquidRootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = liquidRootRef.current;
+    if (!root) return;
+    let instance: { destroy: () => void } | undefined;
+    void LiquidGlass.init({
+      root,
+      glassElements: root.querySelectorAll<HTMLElement>("[data-liquid-glass]"),
+      defaults: {
+        blurAmount: 0.18,
+        refraction: 0.72,
+        chromAberration: 0.035,
+        edgeHighlight: 0.12,
+        specular: 0.18,
+        tintStrength: 0.08,
+        shadowOpacity: 0.24,
+        cornerRadius: 18,
+      },
+    }).then((created) => {
+      instance = created;
+    });
+    return () => instance?.destroy();
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -265,8 +290,13 @@ function ReaderShell() {
   const canNext = page < numPages;
 
   return (
-    <div className="flex h-dvh flex-col bg-bg text-fg">
-      <header className="flex shrink-0 items-center gap-2 border-b border-border bg-elevated px-2 py-1.5 sm:px-3">
+    <div ref={liquidRootRef} className="liquid-root flex h-dvh flex-col bg-bg text-fg">
+      <div className="liquid-backdrop" aria-hidden="true" />
+      <header
+        data-liquid-glass=""
+        data-config={JSON.stringify({ floating: false, button: false })}
+        className="liquid-panel flex shrink-0 items-center gap-2 border-b border-border px-2 py-1.5 sm:px-3"
+      >
         <div className="flex min-w-0 items-center gap-2">
           <span className="flex size-9 items-center justify-center rounded-md bg-accent/12 text-accent">
             <BookOpen className="size-4" strokeWidth={1.75} />
@@ -337,6 +367,14 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="باز کردن PDF دیگر"
+            onClick={() => fileRef.current?.click()}
+          >
+            <FileUp className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             aria-label={theme === "dark" ? "حالت روشن" : "حالت تاریک"}
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
@@ -369,6 +407,7 @@ function ReaderShell() {
           source={pdfData}
           page={Math.min(page, numPages)}
           zoom={zoom}
+          onZoomChange={setZoom}
           replaceText={replace?.text ?? null}
           replaceRects={replace?.rects ?? null}
           onNumPages={(n) => {
@@ -465,7 +504,6 @@ function ReaderShell() {
       <SettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
-        onOpenFile={() => fileRef.current?.click()}
         onRestorePdf={() => void restoreDefaultPdf()}
       />
     </div>
@@ -557,12 +595,10 @@ function TranslatePanel({
 function SettingsDialog({
   open,
   onOpenChange,
-  onOpenFile,
   onRestorePdf,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onOpenFile: () => void;
   onRestorePdf: () => void;
 }) {
   const sourceLang = useSettings((s) => s.sourceLang);
@@ -698,10 +734,6 @@ function SettingsDialog({
 
             <section className="space-y-2">
               <h3 className="text-xs font-medium text-muted">فایل</h3>
-              <Button variant="outline" className="w-full" onClick={onOpenFile}>
-                <FileUp className="size-4" />
-                باز کردن PDF دیگر
-              </Button>
               {pdfSource === "upload" ? (
                 <Button
                   variant="ghost"
