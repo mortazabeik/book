@@ -305,15 +305,15 @@ function ReaderShell() {
   return (
     <div className="glass-root flex h-dvh flex-col bg-bg text-fg">
       <div className="glass-backdrop" aria-hidden="true" />
-      <header className="glass-panel flex shrink-0 items-center gap-2 border-b border-[#0a3152] bg-[#08253f] px-2 py-1.5 text-white sm:px-3">
-        <div className="flex min-w-0 items-center gap-2">
+      <header className="glass-panel flex shrink-0 items-center gap-2 bg-[#08253f] px-2 py-1.5 text-white sm:px-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <img
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Morio%20book-dark%20mod-YFq92plZKjHgqOzYtNJeFjEFHNHdeQ.png"
             alt="Morio Book"
             className="h-9 w-auto max-w-36 object-contain"
           />
-          <div className="min-w-0">
-            <p className="truncate text-[11px] text-white/70">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[11px] font-medium text-white">
               {pdfSource === "upload" && uploadName ? uploadName : "book.pdf"}
             </p>
           </div>
@@ -321,7 +321,7 @@ function ReaderShell() {
 
         <div
           dir="ltr"
-          className="mx-auto flex items-center gap-1 rounded-lg bg-white/10 px-1 py-0.5 shadow-[0_0_0_1px_rgba(255,255,255,0.14)]"
+          className="mx-auto flex shrink-0 items-center gap-1 rounded-lg bg-white/10 px-1 py-0.5 shadow-[0_0_0_1px_rgba(255,255,255,0.14)]"
         >
           <Button
             variant="ghost"
@@ -352,7 +352,7 @@ function ReaderShell() {
           </Button>
         </div>
 
-        <div className="ms-auto flex items-center gap-0.5">
+        <div className="ms-auto flex shrink-0 items-center gap-0.5">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -474,16 +474,20 @@ function ReaderShell() {
       {showBtn && pending ? (
         <div
           data-translation-ui=""
-          className="fixed z-40 flex h-10 items-center gap-1.5 rounded-full bg-accent px-1.5 ps-3.5 text-sm font-medium text-accent-fg shadow-[var(--shadow-float)]"
+          className="fixed z-40 flex h-10 items-center gap-1 rounded-full border border-white/20 bg-accent p-1 text-sm font-medium text-accent-fg shadow-[var(--shadow-float)]"
           style={{ left: btnPos.x, top: btnPos.y }}
         >
-          <button type="button" className="flex items-center gap-1.5" onClick={() => void runTranslate(pending)}>
-            <Languages data-icon="inline-start" />
-            Translate
+          <button
+            type="button"
+            className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-accent-fg/15"
+            aria-label="Translate selected text"
+            onClick={() => void runTranslate(pending)}
+          >
+            <Languages className="size-4" />
           </button>
           <button
             type="button"
-            className="flex size-7 items-center justify-center rounded-full hover:bg-accent-fg/15"
+            className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-accent-fg/15"
             aria-label="Copy selected text"
             onClick={async () => {
               await navigator.clipboard.writeText(pending.text);
@@ -834,7 +838,7 @@ function FieldSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-lg bg-bg px-3 text-sm text-fg shadow-[var(--shadow-border)] outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+        className="h-11 w-full appearance-none rounded-xl border border-border bg-bg-elevated px-3 text-sm text-fg shadow-[var(--shadow-border)] outline-none transition-colors hover:border-accent/45 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25"
       >
         {options.map((option) => (
           <option key={option.code} value={option.code}>
