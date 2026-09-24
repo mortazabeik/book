@@ -289,7 +289,7 @@ function ReaderShell() {
     setError(null);
     try {
       let blocks = pageBlocks;
-      if (pageImage) {
+      if (!blocks.length && pageImage) {
         const { PaddleOCR } = await import("@paddleocr/paddleocr-js");
         const ocr = await PaddleOCR.create({
           lang: sourceLang === "auto" ? "en" : sourceLang,
@@ -371,8 +371,9 @@ function ReaderShell() {
       setCurrent({ source: blocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n") });
       addHistory({ source: blocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n"), sourceLang, targetLang });
       setSettingsOpen(false);
-    } catch {
-      setError("Page translation failed. Please try again.");
+    } catch (error) {
+      console.error("[v0] Page translation failed", error);
+      setError(error instanceof Error ? error.message : "Page translation failed. Please try again.");
     } finally {
       setPageTranslating(false);
     }
