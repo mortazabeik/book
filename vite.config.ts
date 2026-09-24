@@ -149,7 +149,8 @@ export default defineConfig(({ command, isPreview }) => ({
   server: {
     host: "0.0.0.0",
     port: 8080,
-    strictPort: true,
+    // Allow Vite to recover during HMR restarts while the previous listener closes.
+    strictPort: false,
   },
   preview: {
     host: "127.0.0.1",
