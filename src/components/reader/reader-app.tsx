@@ -32,6 +32,7 @@ import {
   useSettings,
 } from "@/lib/store";
 import { translateText } from "@/lib/translate";
+import { detectDocumentRegions } from "@/lib/doclayout";
 import { cn } from "@/lib/utils";
 import {
   PdfViewer,
@@ -322,7 +323,20 @@ function ReaderShell() {
           else previous.push(line);
         }
         const bitmap = await createImageBitmap(pageImage.blob);
-        const ocrBlocks: TextBlock[] = await Promise.all(paragraphLines.map(async (paragraph) => {
+        const layoutRegions = await detectDocumentRegions(pageImage.blob).catch(() => []);
+        const paragraphRegions = layoutRegions.filter((region) =>
+          ["text", "content", "abstract", "paragraph_title", "reference", "footnote", "header", "footer"].includes(region.label),
+        );
+        const regionsToOcr = paragraphRegions.length
+          ? paragraphRegions.map((region) => [{
+              text: "",
+              left: region.left * scaleX,
+              top: region.top * scaleY,
+              right: region.right * scaleX,
+              bottom: region.bottom * scaleY,
+            }])
+          : paragraphLines;
+        const ocrBlocks: TextBlock[] = await Promise.all(regionsToOcr.map(async (paragraph) => {
           const left = Math.max(0, Math.floor(Math.min(...paragraph.map((line) => line.left)) / scaleX));
           const top = Math.max(0, Math.floor(Math.min(...paragraph.map((line) => line.top)) / scaleY));
           const right = Math.min(pageImage.pixelWidth, Math.ceil(Math.max(...paragraph.map((line) => line.right)) / scaleX));
