@@ -259,6 +259,18 @@ export function PdfViewer({
         const sameParagraph = previous && !paragraphBoundary;
         if (sameParagraph) {
           previous.text = `${previous.text} ${item.str}`.replace(/\s+/g, " ").trim();
+          const previousRight = previous.rect.left + previous.rect.width;
+          const previousBottom = previous.rect.top + previous.rect.height;
+          const currentRight = rect.left + rect.width;
+          const currentBottom = rect.top + rect.height;
+          const mergedLeft = Math.min(previous.rect.left, rect.left);
+          const mergedTop = Math.min(previous.rect.top, rect.top);
+          previous.rect = {
+            left: mergedLeft,
+            top: mergedTop,
+            width: Math.max(previousRight, currentRight) - mergedLeft,
+            height: Math.max(previousBottom, currentBottom) - mergedTop,
+          };
           previous.parts ??= [{ text: previous.text, rect: previous.rect }];
           const lastPart = previous.parts.at(-1);
           if (lastPart) {
