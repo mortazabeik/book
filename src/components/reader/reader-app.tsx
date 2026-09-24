@@ -165,7 +165,10 @@ function ReaderShell() {
 
   useEffect(() => {
     dismissTransient();
-  }, [mode, dismissTransient]);
+    setTranslatedBlocks(null);
+    setTranslatedPageText(null);
+    setPageTranslating(false);
+  }, [page, dismissTransient]);
 
   const runTranslate = useCallback(
     async (payload: SelectionPayload) => {
