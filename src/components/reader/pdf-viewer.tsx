@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type WheelEvent } from "react";
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from "pdfjs-dist";
 import { cn } from "@/lib/utils";
 
@@ -16,15 +16,27 @@ export type SelectionPayload = {
   rects: OverlayRect[];
 };
 
+export type TextBlock = {
+  text: string;
+  rect: OverlayRect;
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: string;
+  fontStyle: string;
+  color: string;
+};
+
 type PdfViewerProps = {
   source: string | ArrayBuffer | null;
   page: number;
   zoom: number;
   onZoomChange: (zoom: number) => void;
-  replaceText: string | null;
-  replaceRects: OverlayRect[] | null;
   onNumPages: (n: number) => void;
   onSelection: (payload: SelectionPayload | null) => void;
+  onPageText?: (text: string) => void;
+  onTextItems?: (items: string[]) => void;
+  onTextBlocks?: (blocks: TextBlock[]) => void;
+  translatedBlocks?: Array<TextBlock & { translation: string }> | null;
   className?: string;
 };
 
@@ -33,10 +45,12 @@ export function PdfViewer({
   page,
   zoom,
   onZoomChange,
-  replaceText,
-  replaceRects,
   onNumPages,
   onSelection,
+  onPageText,
+  onTextItems,
+  onTextBlocks,
+  translatedBlocks,
   className,
 }: PdfViewerProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -47,8 +61,14 @@ export function PdfViewer({
   const renderTaskRef = useRef<RenderTask | null>(null);
   const onNumPagesRef = useRef(onNumPages);
   const onSelectionRef = useRef(onSelection);
+  const onPageTextRef = useRef(onPageText);
+  const onTextItemsRef = useRef(onTextItems);
   onNumPagesRef.current = onNumPages;
   onSelectionRef.current = onSelection;
+  onPageTextRef.current = onPageText;
+  onTextItemsRef.current = onTextItems;
+  const onTextBlocksRef = useRef(onTextBlocks);
+  onTextBlocksRef.current = onTextBlocks;
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -184,6 +204,64 @@ export function PdfViewer({
 
       const textContent = await pdfPage.getTextContent();
       if (cancelled) return;
+      const pageText = textContent.items
+        .map((item) => ("str" in item && typeof item.str === "string" ? item.str : ""))
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      onPageTextRef.current?.(pageText);
+      onTextItemsRef.current?.(
+        textContent.items
+          .map((item) => ("str" in item && typeof item.str === "string" ? item.str : ""))
+          .filter(Boolean),
+      );
+      const blocks: TextBlock[] = [];
+      for (const item of textContent.items) {
+        if (!("str" in item) || typeof item.str !== "string" || !item.str.trim()) continue;
+        const style = textContent.styles[item.fontName];
+        const [, , , scaleY, x, y] = item.transform;
+        const fontSize = Math.max(8, Math.abs(scaleY) * scale);
+        const itemBottom = y - (item.height || Math.abs(scaleY));
+        const itemRight = x + item.width;
+        const points = [
+          viewport.convertToViewportPoint(x, itemBottom),
+          viewport.convertToViewportPoint(itemRight, itemBottom),
+          viewport.convertToViewportPoint(x, y),
+          viewport.convertToViewportPoint(itemRight, y),
+        ];
+        const xs = points.map(([pointX]) => pointX);
+        const ys = points.map(([, pointY]) => pointY);
+        const left = Math.min(...xs);
+        const top = Math.min(...ys);
+        const right = Math.max(...xs);
+        const bottom = Math.max(...ys);
+        const rect = {
+          left,
+          top,
+          width: right - left,
+          height: Math.max(bottom - top, fontSize * 1.25),
+        };
+        const signature = `${item.fontName}:${Math.round(fontSize)}:${style?.fontFamily ?? "sans-serif"}`;
+        const previous = blocks[blocks.length - 1];
+        const previousSignature = previous ? `${previous.fontFamily}:${Math.round(previous.fontSize)}` : "";
+        if (previous && previousSignature === `${style?.fontFamily ?? "sans-serif"}:${Math.round(fontSize)}` && Math.abs(rect.top - (previous.rect.top + previous.rect.height)) < fontSize * 2.5) {
+          previous.text = `${previous.text} ${item.str}`.replace(/\s+/g, " ").trim();
+          const rightEdge = Math.max(previous.rect.left + previous.rect.width, rect.left + rect.width);
+          previous.rect.width = rightEdge - previous.rect.left;
+          previous.rect.height = Math.max(previous.rect.height, rect.top + rect.height - previous.rect.top);
+        } else {
+          blocks.push({
+            text: item.str.trim(),
+            rect,
+            fontSize,
+            fontFamily: style?.fontFamily ?? "sans-serif",
+            fontWeight: "400",
+            fontStyle: "normal",
+            color: "currentColor",
+          });
+        }
+      }
+      onTextBlocksRef.current?.(blocks);
       textLayerDiv.innerHTML = "";
       textLayerDiv.style.width = `${viewport.width}px`;
       textLayerDiv.style.height = `${viewport.height}px`;
@@ -193,7 +271,9 @@ export function PdfViewer({
         viewport,
       });
       await textLayer.render();
-      if (!cancelled) setStatus("ready");
+      if (!cancelled) {
+        setStatus("ready");
+      }
     }
 
     void renderPage(loaded);
@@ -241,43 +321,40 @@ export function PdfViewer({
     });
   }
 
-  const box = boundingBox(replaceRects);
+  const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
 
-  useEffect(() => {
-    const layer = textLayerRef.current;
-    if (!layer || !replaceText || !replaceRects?.length) return;
-    const pageBox = pageRef.current?.getBoundingClientRect();
-    if (!pageBox) return;
-    const selected = replaceRects.map((rect) => ({
-      left: pageBox.left + rect.left,
-      top: pageBox.top + rect.top,
-      right: pageBox.left + rect.left + rect.width,
-      bottom: pageBox.top + rect.top + rect.height,
-    }));
-    const spans = [...layer.querySelectorAll<HTMLElement>("span")];
-    const matches = spans.filter((span) => {
-      const rect = span.getBoundingClientRect();
-      return selected.some(
-        (target) =>
-          rect.left < target.right &&
-          rect.right > target.left &&
-          rect.top < target.bottom &&
-          rect.bottom > target.top,
-      );
-    });
-    if (!matches.length) return;
-    matches.forEach((span, index) => {
-      span.textContent = index === 0 ? replaceText : "";
-      span.style.color = index === 0 ? "var(--fg)" : "transparent";
-      span.style.whiteSpace = "normal";
-      span.style.zIndex = "2";
-    });
-  }, [replaceText, replaceRects, pageSize]);
-
-  function handleWheel(event: React.WheelEvent<HTMLDivElement>) {
+  function handleWheel(event: WheelEvent<HTMLDivElement>) {
     if (!event.ctrlKey) return;
     event.preventDefault();
     onZoomChange(zoom + (event.deltaY < 0 ? 0.1 : -0.1));
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointersRef.current.size === 2) {
+      const points = [...pointersRef.current.values()];
+      pinchRef.current = {
+        distance: Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y),
+        zoom,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!pointersRef.current.has(event.pointerId)) return;
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointersRef.current.size !== 2 || !pinchRef.current) return;
+    event.preventDefault();
+    const points = [...pointersRef.current.values()];
+    const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+    onZoomChange(pinchRef.current.zoom * (distance / pinchRef.current.distance));
+  }
+
+  function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
+    pointersRef.current.delete(event.pointerId);
+    if (pointersRef.current.size < 2) pinchRef.current = null;
   }
 
   return (
@@ -285,8 +362,13 @@ export function PdfViewer({
       ref={scrollerRef}
       dir="ltr"
       className={cn("relative min-h-0 flex-1 overflow-auto bg-bg-subtle", className)}
+      style={{ touchAction: "pan-x pan-y", overscrollBehavior: "contain" }}
       onMouseUp={handleMouseUp}
       onWheel={handleWheel}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       <div className="flex min-h-full justify-center p-4 sm:p-6">
         <div
@@ -300,23 +382,27 @@ export function PdfViewer({
           }}
         >
           <canvas ref={canvasRef} className="pdf-canvas block h-full w-full" />
-          <div ref={textLayerRef} className="textLayer" />
-          {replaceText && box ? (
+          <div ref={textLayerRef} className={cn("textLayer", translatedBlocks?.length && "translated-source-hidden")} />
+          {translatedBlocks?.map((block, index) => (
             <div
-              data-translation-ui=""
-              className="replace-overlay absolute z-20 overflow-auto rounded-sm bg-paper px-2 py-1.5 text-fg shadow-[var(--shadow-border)]"
-              style={{
-                left: box.left,
-                top: box.top,
-                minWidth: box.width,
-                minHeight: box.height,
-                maxWidth: Math.max(box.width, pageSize.width - box.left - 12),
-              }}
+              key={`${index}-${block.text.slice(0, 12)}`}
+              className="translated-block"
               dir="auto"
+              aria-label="ترجمه پاراگراف"
+              style={{
+                left: block.rect.left,
+                top: block.rect.top,
+                width: Math.max(block.rect.width, 24),
+                minHeight: block.rect.height,
+                fontSize: block.fontSize,
+                fontFamily: block.fontFamily,
+                fontWeight: block.fontWeight,
+                fontStyle: block.fontStyle,
+              }}
             >
-              <p className="text-pretty text-sm leading-relaxed">{replaceText}</p>
+              {block.translation}
             </div>
-          ) : null}
+          ))}
           {status === "loading" ? (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/80 text-sm text-muted">
               در حال گشودن صفحه…
@@ -333,17 +419,3 @@ export function PdfViewer({
   );
 }
 
-function boundingBox(rects: OverlayRect[] | null) {
-  if (!rects || rects.length === 0) return null;
-  let left = Infinity;
-  let top = Infinity;
-  let right = 0;
-  let bottom = 0;
-  for (const rect of rects) {
-    left = Math.min(left, rect.left);
-    top = Math.min(top, rect.top);
-    right = Math.max(right, rect.left + rect.width);
-    bottom = Math.max(bottom, rect.top + rect.height);
-  }
-  return { left, top, width: right - left, height: bottom - top };
-}

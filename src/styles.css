@@ -130,6 +130,49 @@
   --total-scale-factor: 1;
 }
 
+.translated-page-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: auto;
+  padding: 8% 9%;
+  color: var(--ink);
+  font-size: clamp(0.82rem, 1.45vw, 1.12rem);
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  pointer-events: auto;
+}
+
+.translated-page-overlay p {
+  margin: 0 0 1.25em;
+}
+
+.translated-page-overlay p:last-child {
+  margin-bottom: 0;
+}
+
+.translated-block {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 0.2em 0.35em;
+  border-radius: 0.35em;
+  background: color-mix(in srgb, var(--paper) 94%, var(--accent));
+  color: var(--fg);
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent);
+  user-select: text;
+}
+
+.textLayer.translated-source-hidden {
+  visibility: hidden;
+}
+
 .textLayer {
   position: absolute;
   inset: 0;

@@ -33,8 +33,8 @@ import { translateText } from "@/lib/translate";
 import { cn } from "@/lib/utils";
 import {
   PdfViewer,
-  type OverlayRect,
   type SelectionPayload,
+  type TextBlock,
 } from "./pdf-viewer";
 
 export function ReaderApp() {
@@ -84,10 +84,12 @@ function ReaderShell() {
     source: string;
     translation: string;
   } | null>(null);
-  const [replace, setReplace] = useState<{
-    text: string;
-    rects: OverlayRect[];
-  } | null>(null);
+  const [pageText, setPageText] = useState("");
+  const [pageTextItems, setPageTextItems] = useState<string[]>([]);
+  const [translatedPageText, setTranslatedPageText] = useState<string | null>(null);
+  const [pageBlocks, setPageBlocks] = useState<TextBlock[]>([]);
+  const [translatedBlocks, setTranslatedBlocks] = useState<Array<TextBlock & { translation: string }> | null>(null);
+  const [pageTranslating, setPageTranslating] = useState(false);
   const [floatCard, setFloatCard] = useState<{
     x: number;
     y: number;
@@ -124,7 +126,6 @@ function ReaderShell() {
 
   const dismissTransient = useCallback(() => {
     setShowBtn(false);
-    setReplace(null);
     setFloatCard(null);
     setPending(null);
   }, []);
@@ -164,7 +165,10 @@ function ReaderShell() {
 
   useEffect(() => {
     dismissTransient();
-  }, [mode, dismissTransient]);
+    setTranslatedBlocks(null);
+    setTranslatedPageText(null);
+    setPageTranslating(false);
+  }, [page, dismissTransient]);
 
   const runTranslate = useCallback(
     async (payload: SelectionPayload) => {
@@ -193,18 +197,13 @@ function ReaderShell() {
           sourceLang,
           targetLang,
         });
-        if (mode === "replace") {
-          setReplace({ text: res.text, rects: payload.rects });
-          setFloatCard(null);
-        } else if (mode === "float") {
+        if (mode === "float") {
           setFloatCard({
             x: payload.mouseX,
             y: payload.mouseY,
             text: res.text,
           });
-          setReplace(null);
         } else {
-          setReplace(null);
           setFloatCard(null);
         }
         window.getSelection()?.removeAllRanges();
@@ -224,7 +223,6 @@ function ReaderShell() {
         setShowBtn(false);
         return;
       }
-      setReplace(null);
       setFloatCard(null);
       setPending(payload);
       setError(null);
@@ -243,6 +241,8 @@ function ReaderShell() {
 
   async function onPickFile(file: File | undefined) {
     if (!file) return;
+    setTranslatedPageText(null);
+    setPageTextItems([]);
     await saveUploadedPdf(file);
     const buffer = await file.arrayBuffer();
     setPdfSource("upload", file.name);
@@ -252,11 +252,43 @@ function ReaderShell() {
   }
 
   async function restoreDefaultPdf() {
+    setTranslatedPageText(null);
+    setPageTextItems([]);
     await clearUploadedPdf();
     setPdfSource("default");
     setPdfData(DEFAULT_PDF_URL);
     setCurrent(null);
     dismissTransient();
+  }
+
+  async function translateWholePage() {
+    if (translatedBlocks) {
+      setTranslatedBlocks(null);
+      setTranslatedPageText(null);
+      setCurrent(null);
+      return;
+    }
+    if (!pageBlocks.length || pageTranslating) return;
+    setPageTranslating(true);
+    setError(null);
+    try {
+      const results = await Promise.all(pageBlocks.map(async (block) => {
+        const res = await translateText({
+          data: { text: block.text, sourceLang, targetLang },
+        });
+        if (!res.ok) throw new Error(res.error);
+        return { ...block, translation: res.text };
+      }));
+      setTranslatedBlocks(results);
+      setTranslatedPageText(results.map((block) => block.translation).join("\n\n"));
+      setCurrent({ source: pageBlocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n") });
+      addHistory({ source: pageBlocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n"), sourceLang, targetLang });
+      setSettingsOpen(false);
+    } catch {
+      setError("خطا در ترجمه صفحه. دوباره تلاش کنید.");
+    } finally {
+      setPageTranslating(false);
+    }
   }
 
   const split = mode === "split";
@@ -336,6 +368,21 @@ function ReaderShell() {
           </Button>
           <Button
             variant="ghost"
+            size="icon-sm"
+            aria-label={translatedBlocks ? "بازگشت به حالت عادی" : "ترجمه کل صفحه"}
+            disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)}
+            onClick={() => void translateWholePage()}
+          >
+            {pageTranslating ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : translatedPageText ? (
+              <RotateCcw className="size-4" />
+            ) : (
+              <Languages className="size-4" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
             size="icon"
             aria-label="باز کردن PDF دیگر"
             onClick={() => fileRef.current?.click()}
@@ -378,13 +425,15 @@ function ReaderShell() {
           page={Math.min(page, numPages)}
           zoom={zoom}
           onZoomChange={setZoom}
-          replaceText={replace?.text ?? null}
-          replaceRects={replace?.rects ?? null}
           onNumPages={(n) => {
             setNumPages(n);
             if (page > n) setPage(n);
           }}
           onSelection={handleSelection}
+            onPageText={setPageText}
+  onTextItems={setPageTextItems}
+  onTextBlocks={setPageBlocks}
+  translatedBlocks={translatedBlocks}
           className={split ? "md:col-span-7 min-h-0 max-md:min-h-0 max-md:flex-[1.2]" : ""}
         />
         {split ? (
@@ -628,12 +677,6 @@ function SettingsDialog({
                   onClick={() => setMode("split")}
                 />
                 <ModeCard
-                  active={mode === "replace"}
-                  title="جایگزینی"
-                  body="متن ترجمه‌شده روی همان سطر می‌نشیند تا وقتی جای دیگری کلیک کنید."
-                  onClick={() => setMode("replace")}
-                />
-                <ModeCard
                   active={mode === "float"}
                   title="شناور"
                   body="ترجمه در پنجره‌ای کوچک کنار انتخاب ظاهر می‌شود."
@@ -683,7 +726,7 @@ function SettingsDialog({
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setZoom(zoom - 0.1)}
-                    aria-label="کوچک‌نمایی"
+                    aria-label="کوچ��‌نمایی"
                   >
                     <Minus className="size-4" />
                   </Button>
