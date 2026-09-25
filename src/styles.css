@@ -244,7 +244,7 @@
 }
 
 .pdf-canvas-dark {
-  filter: invert(0.9) hue-rotate(180deg);
+  filter: brightness(0.82) contrast(0.92);
 }
 
 .pdf-page {
