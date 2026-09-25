@@ -1,4 +1,6 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { spawn } = require("node:child_process");
+const readline = require("node:readline");
 const path = require("node:path");
 const { startServer } = require("./server.cjs");
 
@@ -21,6 +23,26 @@ ipcMain.handle("window:close", (event) => {
 });
 
 const startUrl = process.env.ELECTRON_START_URL || "http://localhost:8080";
+
+ipcMain.handle("piper:speak", async (_event, text) => {
+  const python = process.platform === "win32" ? "python" : "python3";
+  const script = path.join(__dirname, "piper_service.py");
+  return await new Promise((resolve, reject) => {
+    const child = spawn(python, [script], { cwd: app.getAppPath(), stdio: ["pipe", "pipe", "pipe"] });
+    const output = readline.createInterface({ input: child.stdout });
+    const timer = setTimeout(() => { child.kill(); reject(new Error("Piper timed out")); }, 120000);
+    output.once("line", (line) => {
+      clearTimeout(timer);
+      try { resolve(JSON.parse(line)); } catch { reject(new Error("Invalid Piper response")); }
+      child.kill();
+    });
+    child.once("error", (error) => { clearTimeout(timer); reject(error); });
+    child.once("exit", (code) => {
+      if (code && !child.killed) reject(new Error("Piper exited unexpectedly"));
+    });
+    child.stdin.end(JSON.stringify({ text }) + "\\n");
+  });
+});
 
 async function loadApplication(window) {
   if (app.isPackaged) {
