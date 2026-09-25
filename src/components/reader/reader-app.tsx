@@ -100,6 +100,7 @@ function ReaderShell() {
   const [pageText, setPageText] = useState("");
   const [pageTextItems, setPageTextItems] = useState<string[]>([]);
   const [translatedPageText, setTranslatedPageText] = useState<string | null>(null);
+  const [translatedParagraphs, setTranslatedParagraphs] = useState<string[]>([]);
   const [pageBlocks, setPageBlocks] = useState<TextBlock[]>([]);
   const [translatedBlocks, setTranslatedBlocks] = useState<Array<TextBlock & { translation: string }> | null>(null);
   const [pageTranslating, setPageTranslating] = useState(false);
@@ -144,19 +145,26 @@ function ReaderShell() {
     };
   }, [pdfSource, setPdfSource]);
 
-  const speakText = useCallback(async (text: string, language: string) => {
+  const speakText = useCallback(async (text: string, language: string, paragraphs?: string[]) => {
     try {
-      const result = await synthesizeSpeech({ data: { text, language } });
-      if (!result.ok) {
-        setSpeechNotice(result.error);
-        return;
-      }
       document.querySelector<HTMLAudioElement>("audio[data-edge-tts]")?.pause();
-      const audio = new Audio(result.audio);
-      audio.dataset.edgeTts = "true";
-      audio.onended = () => audio.remove();
-      document.body.appendChild(audio);
-      await audio.play();
+      for (const paragraph of paragraphs?.length ? paragraphs : [text]) {
+        const cleanText = paragraph.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+        if (!cleanText) continue;
+        const result = await synthesizeSpeech({ data: { text: cleanText, language } });
+        if (!result.ok) {
+          setSpeechNotice(result.error);
+          return;
+        }
+        await new Promise<void>((resolve, reject) => {
+          const audio = new Audio(result.audio);
+          audio.dataset.edgeTts = "true";
+          audio.onended = () => { audio.remove(); resolve(); };
+          audio.onerror = () => { audio.remove(); reject(new Error("Audio playback failed")); };
+          document.body.appendChild(audio);
+          void audio.play().catch(reject);
+        });
+      }
       setSpeechNotice(null);
     } catch {
       setSpeechNotice("خواندن متن با Edge TTS انجام نشد. دوباره تلاش کنید.");
@@ -289,6 +297,7 @@ function ReaderShell() {
   async function onPickFile(file: File | undefined) {
     if (!file) return;
     setTranslatedPageText(null);
+    setTranslatedParagraphs([]);
     setPageTextItems([]);
     await saveUploadedPdf(file);
     const buffer = await file.arrayBuffer();
@@ -303,6 +312,7 @@ function ReaderShell() {
     if (translatedBlocks) {
       setTranslatedBlocks(null);
       setTranslatedPageText(null);
+      setTranslatedParagraphs([]);
       setCurrent(null);
       return;
     }
@@ -312,11 +322,13 @@ function ReaderShell() {
     try {
       const blocks = pageBlocks;
       if (!blocks.length) throw new Error("No text was detected on this page.");
-      const results = await Promise.all(blocks.map(async (block) => {
+      const paragraphTranslations: string[] = [];
+      const results = await Promise.all(blocks.map(async (block, index) => {
         const res = await translateText({
           data: { text: block.text, sourceLang, targetLang },
         });
         if (!res.ok) throw new Error(res.error);
+        paragraphTranslations[index] = res.text.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
         const parts = block.parts ?? [{ text: block.text, rect: block.rect }];
         if (parts.length === 1) return { ...block, translation: res.text };
         const words = res.text.trim().split(/\s+/).filter(Boolean);
@@ -335,7 +347,8 @@ function ReaderShell() {
         return segmented;
       })).then((items) => items.flat());
       setTranslatedBlocks(results);
-      setTranslatedPageText(results.map((block) => block.translation).join("\n\n"));
+      setTranslatedParagraphs(paragraphTranslations);
+      setTranslatedPageText(paragraphTranslations.join("\n\n"));
       setCurrent({ source: blocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n") });
       addHistory({ source: blocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n"), sourceLang, targetLang });
       setSettingsOpen(false);
@@ -481,20 +494,13 @@ function ReaderShell() {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Read original text"
-            disabled={!pageText}
-            onClick={() => speakText(pageText, sourceLang)}
+            aria-label={translatedBlocks ? "Read translated text" : "Read original text"}
+            disabled={translatedBlocks ? !translatedParagraphs.length : !pageText}
+            onClick={() => translatedBlocks
+              ? speakText(translatedPageText ?? "", targetLang, translatedParagraphs)
+              : speakText(pageText, sourceLang)}
           >
             <Volume2 className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Read translated text"
-            disabled={!translatedPageText}
-            onClick={() => speakText(translatedPageText ?? "", targetLang)}
-          >
-            <Languages className="size-4" />
           </Button>
           <Button
             variant="ghost"
