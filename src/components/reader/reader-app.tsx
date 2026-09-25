@@ -85,6 +85,7 @@ function ReaderShell() {
   const sourceLang = useSettings((s) => s.sourceLang);
   const targetLang = useSettings((s) => s.targetLang);
   const mode = useSettings((s) => s.mode);
+  const setMode = useSettings((s) => s.setMode);
   const autoTranslate = useSettings((s) => s.autoTranslate);
   const page = useSettings((s) => s.page);
   const zoom = useSettings((s) => s.zoom);
@@ -351,6 +352,17 @@ function ReaderShell() {
   }
 
   const split = mode === "split";
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 767px)");
+    const syncMobileMode = () => {
+      if (mobileQuery.matches && mode === "split") setMode("float");
+    };
+    syncMobileMode();
+    mobileQuery.addEventListener("change", syncMobileMode);
+    return () => mobileQuery.removeEventListener("change", syncMobileMode);
+  }, [mode, setMode]);
+
   const canPrev = page > 1;
   const canNext = page < numPages;
 
@@ -413,7 +425,7 @@ function ReaderShell() {
 
         <div
           dir="ltr"
-          className="mx-auto flex shrink-0 items-center gap-1 rounded-lg bg-white/10 px-1 py-0.5 shadow-[0_0_0_1px_rgba(255,255,255,0.14)]"
+          className="mx-auto hidden shrink-0 items-center gap-1 rounded-lg bg-white/10 px-1 py-0.5 shadow-[0_0_0_1px_rgba(255,255,255,0.14)] sm:flex"
         >
           <Button
             variant="ghost"
@@ -472,7 +484,7 @@ function ReaderShell() {
           </Button>
         </div>
 
-        <div className="ms-auto flex shrink-0 items-center gap-0.5">
+        <div className="ms-auto hidden shrink-0 items-center gap-0.5 sm:flex">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -552,6 +564,21 @@ function ReaderShell() {
           </div>
         ) : null}
       </header>
+
+      <div className="fixed inset-x-2 bottom-2 z-50 flex items-center justify-between gap-1 rounded-2xl border border-white/10 bg-[var(--header)]/95 p-1.5 text-white shadow-[var(--shadow-float)] backdrop-blur-xl sm:hidden" dir="ltr">
+        <Button variant="ghost" size="icon-sm" aria-label="Previous page" disabled={!canPrev} onClick={() => setPage(page - 1)}><ChevronLeft className="size-4" /></Button>
+        <label className="flex min-w-16 items-center justify-center gap-1 text-xs tabular-nums text-muted">
+          <span className="sr-only">Go to page</span>
+          <input type="number" min={1} max={Math.max(numPages, 1)} value={pageInput} aria-label="Current page" className="w-8 bg-transparent text-center text-xs text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" onChange={(event) => { const nextValue = event.target.value; const previousValue = pageInput; setPageInput(nextValue); if (nextValue.length > previousValue.length) { const nextPage = Number(nextValue); if (Number.isFinite(nextPage)) setPage(Math.min(Math.max(1, nextPage), Math.max(numPages, 1))); } }} onBlur={(event) => { const nextPage = Number(event.currentTarget.value); const normalized = Number.isFinite(nextPage) ? Math.min(Math.max(1, nextPage), Math.max(numPages, 1)) : page; setPage(normalized); setPageInput(String(normalized)); }} />
+          <span aria-hidden="true">/ {numPages}</span>
+        </label>
+        <Button variant="ghost" size="icon-sm" aria-label="Next page" disabled={!canNext} onClick={() => setPage(page + 1)}><ChevronRight className="size-4" /></Button>
+        <div className="mx-1 h-5 w-px bg-white/15" />
+        <Button variant="ghost" size="icon-sm" aria-label="Zoom out" onClick={() => setZoom(zoom - 0.1)}><Minus className="size-4" /></Button>
+        <span className="min-w-9 text-center text-[10px] tabular-nums text-muted">{Math.round(zoom * 100)}%</span>
+        <Button variant="ghost" size="icon-sm" aria-label="Zoom in" onClick={() => setZoom(zoom + 0.1)}><Plus className="size-4" /></Button>
+        <Button variant="ghost" size="icon-sm" aria-label="Settings" onClick={() => setSettingsOpen(true)}><Settings2 className="size-4" /></Button>
+      </div>
 
       <div
         className="flex min-h-0 flex-1 flex-col md:flex-row"
@@ -870,9 +897,10 @@ function SettingsDialog({
             <section className="space-y-3">
               <h3 className="text-xs font-medium text-muted">Translation mode</h3>
               <div className="grid gap-2">
-                <ModeCard
-                  active={mode === "split"}
-                  title="70 / 30 split"
+                <div className="hidden md:block">
+                  <ModeCard
+                    active={mode === "split"}
+                    title="70 / 30 split"
                   body="Book on the larger side, translation in the side panel."
                   onClick={() => setMode("split")}
                 />
@@ -882,6 +910,7 @@ function SettingsDialog({
                   body="Translation appears in a small window beside the selection."
                   onClick={() => setMode("float")}
                 />
+                </div>
               </div>
             </section>
 
