@@ -16,6 +16,12 @@ export type SelectionPayload = {
   rects: OverlayRect[];
 };
 
+export type PdfBookmark = {
+  title: string;
+  page: number | null;
+  children: PdfBookmark[];
+};
+
 export type TextBlock = {
   text: string;
   rect: OverlayRect;
@@ -36,6 +42,7 @@ type PdfViewerProps = {
   pdfDarkMode: boolean;
   onZoomChange: (zoom: number) => void;
   onNumPages: (n: number) => void;
+  onBookmarks?: (bookmarks: PdfBookmark[]) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   onPageText?: (text: string) => void;
   onTextItems?: (items: string[]) => void;
@@ -51,6 +58,7 @@ export function PdfViewer({
   pdfDarkMode,
   onZoomChange,
   onNumPages,
+  onBookmarks,
   onSelection,
   onPageText,
   onTextItems,
@@ -66,10 +74,12 @@ export function PdfViewer({
   const renderTaskRef = useRef<RenderTask | null>(null);
   const onNumPagesRef = useRef(onNumPages);
   const onSelectionRef = useRef(onSelection);
+  const onBookmarksRef = useRef(onBookmarks);
   const onPageTextRef = useRef(onPageText);
   const onTextItemsRef = useRef(onTextItems);
   onNumPagesRef.current = onNumPages;
   onSelectionRef.current = onSelection;
+  onBookmarksRef.current = onBookmarks;
   onPageTextRef.current = onPageText;
   onTextItemsRef.current = onTextItems;
   const onTextBlocksRef = useRef(onTextBlocks);
@@ -123,6 +133,21 @@ export function PdfViewer({
         if (cancelled) return;
         pdfRef.current = pdf;
         onNumPagesRef.current(pdf.numPages);
+        const outline = await pdf.getOutline();
+        const resolveBookmarks = async (items: any[]): Promise<PdfBookmark[]> => Promise.all((items ?? []).map(async (item) => {
+          let bookmarkPage: number | null = null;
+          if (item.dest) {
+            try {
+              const destination = typeof item.dest === "string" ? await pdf.getDestination(item.dest) : item.dest;
+              const ref = destination?.[0];
+              if (ref) bookmarkPage = (await pdf.getPageIndex(ref)) + 1;
+            } catch {
+              bookmarkPage = null;
+            }
+          }
+          return { title: String(item.title ?? "Untitled"), page: bookmarkPage, children: await resolveBookmarks(item.items) };
+        }));
+        onBookmarksRef.current?.(await resolveBookmarks(outline ?? []));
         setDocGen((n) => n + 1);
       } catch {
         if (cancelled) return;

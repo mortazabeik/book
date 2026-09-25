@@ -35,9 +35,30 @@ import { translateText } from "@/lib/translate";
 import { cn } from "@/lib/utils";
 import {
   PdfViewer,
+  type PdfBookmark,
   type SelectionPayload,
   type TextBlock,
 } from "./pdf-viewer";
+
+function BookmarkTree({ items, onSelect }: { items: PdfBookmark[]; onSelect: (page: number) => void }) {
+  return (
+    <ul className="space-y-0.5">
+      {items.map((item, index) => (
+        <li key={`${item.title}-${index}`}>
+          <button
+            type="button"
+            disabled={!item.page}
+            className="w-full truncate rounded-md px-2 py-1.5 text-start text-xs text-muted hover:bg-fg/6 hover:text-fg disabled:cursor-default disabled:opacity-60"
+            onClick={() => item.page && onSelect(item.page)}
+          >
+            {item.title}
+          </button>
+          {item.children.length ? <div className="ms-3 border-s border-border ps-1"><BookmarkTree items={item.children} onSelect={onSelect} /></div> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function ReaderApp() {
   const [mounted, setMounted] = useState(false);
@@ -79,6 +100,8 @@ function ReaderShell() {
   const [pageInput, setPageInput] = useState(String(page));
   const [pdfData, setPdfData] = useState<string | ArrayBuffer>(DEFAULT_PDF_URL);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [bookmarks, setBookmarks] = useState<PdfBookmark[]>([]);
+  const [bookmarksOpen, setBookmarksOpen] = useState(true);
   const [pending, setPending] = useState<SelectionPayload | null>(null);
   const [showBtn, setShowBtn] = useState(false);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
@@ -537,11 +560,21 @@ function ReaderShell() {
             : "flex-col",
         )}
       >
+        {bookmarks.length ? (
+          <aside className={cn("shrink-0 border-b border-border bg-elevated/40 md:border-b-0 md:border-e md:w-64", !bookmarksOpen && "md:w-11")} aria-label="PDF bookmarks">
+            <button type="button" className="flex h-10 w-full items-center justify-between gap-2 px-3 text-xs font-medium text-fg hover:bg-fg/6" onClick={() => setBookmarksOpen((open) => !open)} aria-expanded={bookmarksOpen}>
+              {bookmarksOpen ? <span>Bookmarks</span> : <span className="sr-only">Show bookmarks</span>}
+              <ChevronDown className={cn("size-4 transition-transform", !bookmarksOpen && "-rotate-90")} />
+            </button>
+            {bookmarksOpen ? <div className="max-h-48 overflow-auto px-2 pb-3 md:max-h-none"><BookmarkTree items={bookmarks} onSelect={(targetPage) => setPage(targetPage)} /></div> : null}
+          </aside>
+        ) : null}
         <PdfViewer
           source={pdfData}
           page={Math.min(page, numPages)}
           zoom={zoom}
           onZoomChange={setZoom}
+          onBookmarks={setBookmarks}
           onNumPages={(n) => {
             setNumPages(n);
             if (page > n) setPage(n);
