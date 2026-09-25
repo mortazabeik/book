@@ -565,7 +565,7 @@ function ReaderShell() {
         ) : null}
       </header>
 
-      <div className="fixed inset-x-2 bottom-2 z-50 flex items-center justify-between gap-1 rounded-2xl border border-white/10 bg-[var(--header)]/95 p-1.5 text-white shadow-[var(--shadow-float)] backdrop-blur-xl sm:hidden" dir="ltr">
+      <div className="fixed inset-x-1 bottom-2 z-50 flex items-center justify-between gap-0.5 rounded-2xl border border-white/10 bg-[var(--header)]/95 p-1.5 text-white shadow-[var(--shadow-float)] backdrop-blur-xl sm:hidden" dir="ltr">
         <Button variant="ghost" size="icon-sm" aria-label="Previous page" disabled={!canPrev} onClick={() => setPage(page - 1)}><ChevronLeft className="size-4" /></Button>
         <label className="flex min-w-16 items-center justify-center gap-1 text-xs tabular-nums text-muted">
           <span className="sr-only">Go to page</span>
@@ -577,6 +577,14 @@ function ReaderShell() {
         <Button variant="ghost" size="icon-sm" aria-label="Zoom out" onClick={() => setZoom(zoom - 0.1)}><Minus className="size-4" /></Button>
         <span className="min-w-9 text-center text-[10px] tabular-nums text-muted">{Math.round(zoom * 100)}%</span>
         <Button variant="ghost" size="icon-sm" aria-label="Zoom in" onClick={() => setZoom(zoom + 0.1)}><Plus className="size-4" /></Button>
+        <div className="mx-0.5 h-5 w-px bg-white/15" />
+        <Button variant="ghost" size="icon-sm" aria-label={translatedBlocks ? "Restore original" : "Translate page"} disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)} onClick={() => void translateWholePage()}>
+          {pageTranslating ? <LoaderCircle className="size-4 animate-spin" /> : translatedPageText ? <RotateCcw className="size-4" /> : <Languages className="size-4" />}
+        </Button>
+        <Button variant="ghost" size="icon-sm" aria-label="Open another PDF" onClick={() => fileRef.current?.click()}><FileUp className="size-4" /></Button>
+        <Button variant="ghost" size="icon-sm" aria-label={theme === "dark" ? "Light mode" : "Dark mode"} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+          {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+        </Button>
         <Button variant="ghost" size="icon-sm" aria-label="Settings" onClick={() => setSettingsOpen(true)}><Settings2 className="size-4" /></Button>
       </div>
 
@@ -928,12 +936,12 @@ function SettingsDialog({
                   aria-label="Auto-translate"
                 />
               </div>
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-bg px-3 py-3 shadow-[var(--shadow-border)]">
+              <div className="flex flex-col items-stretch gap-2 rounded-xl bg-bg px-3 py-3 shadow-[var(--shadow-border)] sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <div>
                   <p className="text-sm font-medium">Appearance</p>
                   <p className="text-[11px] text-subtle">Light for paper, dark for night.</p>
                 </div>
-                <div className="flex rounded-lg bg-elevated p-0.5 shadow-[var(--shadow-border)]">
+                <div className="flex w-full rounded-lg bg-elevated p-0.5 shadow-[var(--shadow-border)] sm:w-auto">
                   <ThemeChip
                     active={theme === "system"}
                     onClick={() => setTheme("system")}
