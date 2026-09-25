@@ -244,11 +244,7 @@
 }
 
 .pdf-canvas-dark {
-  filter: none;
-}
-
-.pdf-page-dark {
-  background: #17191c;
+  filter: invert(0.9) hue-rotate(180deg);
 }
 
 .pdf-page {

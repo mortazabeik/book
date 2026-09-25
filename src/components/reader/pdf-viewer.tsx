@@ -198,21 +198,6 @@ export function PdfViewer({
 
   try {
   await renderTask.promise;
-  if (pdfDarkMode && !cancelled) {
-    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    for (let index = 0; index < image.data.length; index += 4) {
-      const red = image.data[index];
-      const green = image.data[index + 1];
-      const blue = image.data[index + 2];
-      const range = Math.max(red, green, blue) - Math.min(red, green, blue);
-      if (range < 28) {
-        image.data[index] = 255 - red;
-        image.data[index + 1] = 255 - green;
-        image.data[index + 2] = 255 - blue;
-      }
-    }
-    ctx.putImageData(image, 0, 0);
-  }
       } catch (err) {
         const name = err instanceof Error ? err.name : "";
         if (name === "RenderingCancelledException" || cancelled) return;
