@@ -19,6 +19,8 @@ import {
   Sun,
   X,
   ChevronDown,
+  PanelLeft,
+  Bookmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -32,13 +34,33 @@ import {
   useSettings,
 } from "@/lib/store";
 import { translateText } from "@/lib/translate";
-import { detectDocumentRegions } from "@/lib/doclayout";
 import { cn } from "@/lib/utils";
 import {
   PdfViewer,
+  type PdfBookmark,
   type SelectionPayload,
   type TextBlock,
 } from "./pdf-viewer";
+
+function BookmarkTree({ items, onSelect }: { items: PdfBookmark[]; onSelect: (page: number) => void }) {
+  return (
+    <ul className="space-y-0.5">
+      {items.map((item, index) => (
+        <li key={`${item.title}-${index}`}>
+          <button
+            type="button"
+            disabled={!item.page}
+            className="w-full truncate rounded-md px-2 py-1.5 text-start text-xs text-muted hover:bg-fg/6 hover:text-fg disabled:cursor-default disabled:opacity-60"
+            onClick={() => item.page && onSelect(item.page)}
+          >
+            {item.title}
+          </button>
+          {item.children.length ? <div className="ms-3 border-s border-border ps-1"><BookmarkTree items={item.children} onSelect={onSelect} /></div> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function ReaderApp() {
   const [mounted, setMounted] = useState(false);
@@ -64,6 +86,7 @@ function ReaderShell() {
   const sourceLang = useSettings((s) => s.sourceLang);
   const targetLang = useSettings((s) => s.targetLang);
   const mode = useSettings((s) => s.mode);
+  const setMode = useSettings((s) => s.setMode);
   const autoTranslate = useSettings((s) => s.autoTranslate);
   const page = useSettings((s) => s.page);
   const zoom = useSettings((s) => s.zoom);
@@ -74,15 +97,24 @@ function ReaderShell() {
   const setPage = useSettings((s) => s.setPage);
   const setZoom = useSettings((s) => s.setZoom);
   const setPdfSource = useSettings((s) => s.setPdfSource);
+  const bookmarksOpen = useSettings((s) => s.bookmarksOpen);
+  const setBookmarksOpen = useSettings((s) => s.setBookmarksOpen);
   const addHistory = useSettings((s) => s.addHistory);
 
   const [numPages, setNumPages] = useState(1);
+  const [pageInput, setPageInput] = useState(String(page));
   const [pdfData, setPdfData] = useState<string | ArrayBuffer>(DEFAULT_PDF_URL);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [bookmarks, setBookmarks] = useState<PdfBookmark[]>([]);
+  const [mobileBookmarksOpen, setMobileBookmarksOpen] = useState(false);
   const [pending, setPending] = useState<SelectionPayload | null>(null);
   const [showBtn, setShowBtn] = useState(false);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [btnPos, setBtnPos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    setPageInput(String(page));
+  }, [page]);
 
   useEffect(() => {
     if (!copyDialogOpen) return;
@@ -96,13 +128,6 @@ function ReaderShell() {
     translation: string;
   } | null>(null);
   const [pageText, setPageText] = useState("");
-  const [pageImage, setPageImage] = useState<{
-    blob: Blob;
-    width: number;
-    height: number;
-    pixelWidth: number;
-    pixelHeight: number;
-  } | null>(null);
   const [pageTextItems, setPageTextItems] = useState<string[]>([]);
   const [translatedPageText, setTranslatedPageText] = useState<string | null>(null);
   const [pageBlocks, setPageBlocks] = useState<TextBlock[]>([]);
@@ -111,6 +136,7 @@ function ReaderShell() {
   const [floatCard, setFloatCard] = useState<{
     x: number;
     y: number;
+    source: string;
     text: string;
   } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -225,12 +251,12 @@ function ReaderShell() {
           setFloatCard({
             x: payload.mouseX,
             y: payload.mouseY,
+            source: payload.text,
             text: res.text,
           });
         } else {
           setFloatCard(null);
         }
-        window.getSelection()?.removeAllRanges();
       } catch {
         setError("Translation failed. Please try again.");
       } finally {
@@ -281,93 +307,41 @@ function ReaderShell() {
     if (translatedBlocks) {
       setTranslatedBlocks(null);
       setTranslatedPageText(null);
-      setCurrent(null);
+        setCurrent(null);
       return;
     }
-    if ((!pageBlocks.length && !pageImage) || pageTranslating) return;
+    if (!pageBlocks.length || pageTranslating) return;
     setPageTranslating(true);
     setError(null);
     try {
-      let blocks = pageBlocks;
-      if (pageImage) {
-        const { PaddleOCR } = await import("@paddleocr/paddleocr-js");
-        const ocr = await PaddleOCR.create({
-          lang: sourceLang === "auto" ? "en" : sourceLang,
-          ocrVersion: "PP-OCRv5",
-          ortOptions: { backend: "auto" },
-        });
-        const [result] = await ocr.predict(pageImage.blob);
-        const scaleX = pageImage.width / pageImage.pixelWidth;
-        const scaleY = pageImage.height / pageImage.pixelHeight;
-        const lines = result.items
-          .filter((item) => item.text.trim() && item.score >= 0.35)
-          .map((item) => {
-            const xs = item.poly.map(([x]) => x * scaleX);
-            const ys = item.poly.map(([, y]) => y * scaleY);
-            return {
-              text: item.text.trim(),
-              left: Math.min(...xs),
-              top: Math.min(...ys),
-              right: Math.max(...xs),
-              bottom: Math.max(...ys),
-            };
-          })
-          .sort((a, b) => a.top - b.top || a.left - b.left);
-        const paragraphLines: typeof lines[] = [];
-        for (const line of lines) {
-          const previous = paragraphLines.at(-1);
-          const previousBottom = previous?.at(-1)?.bottom ?? -Infinity;
-          const previousTop = previous?.at(-1)?.top ?? line.top;
-          const lineHeight = line.bottom - line.top;
-          if (!previous || line.top - previousBottom > lineHeight * 1.8 || line.top - previousTop > lineHeight * 3.2) paragraphLines.push([line]);
-          else previous.push(line);
-        }
-        const bitmap = await createImageBitmap(pageImage.blob);
-        const layoutRegions = await detectDocumentRegions(pageImage.blob).catch(() => []);
-        const paragraphRegions = layoutRegions.filter((region) =>
-          ["text", "content", "abstract", "paragraph_title", "reference", "footnote", "header", "footer"].includes(region.label),
-        );
-        const regionsToOcr = paragraphRegions.length
-          ? paragraphRegions.map((region) => [{
-              text: "",
-              left: region.left * scaleX,
-              top: region.top * scaleY,
-              right: region.right * scaleX,
-              bottom: region.bottom * scaleY,
-            }])
-          : paragraphLines;
-        const ocrBlocks: TextBlock[] = await Promise.all(regionsToOcr.map(async (paragraph) => {
-          const left = Math.max(0, Math.floor(Math.min(...paragraph.map((line) => line.left)) / scaleX));
-          const top = Math.max(0, Math.floor(Math.min(...paragraph.map((line) => line.top)) / scaleY));
-          const right = Math.min(pageImage.pixelWidth, Math.ceil(Math.max(...paragraph.map((line) => line.right)) / scaleX));
-          const bottom = Math.min(pageImage.pixelHeight, Math.ceil(Math.max(...paragraph.map((line) => line.bottom)) / scaleY));
-          const crop = document.createElement("canvas");
-          crop.width = Math.max(1, right - left);
-          crop.height = Math.max(1, bottom - top);
-          crop.getContext("2d")?.drawImage(bitmap, left, top, crop.width, crop.height, 0, 0, crop.width, crop.height);
-          const cropBlob = await new Promise<Blob | null>((resolve) => crop.toBlob(resolve, "image/png"));
-          const cropResult = cropBlob ? await ocr.predict(cropBlob) : [];
-          const recognized = cropResult[0]?.items.filter((item) => item.text.trim() && item.score >= 0.35).map((item) => item.text.trim()).join(" ");
-          return {
-            text: recognized || paragraph.map((line) => line.text).join(" "),
-            rect: { left: left * scaleX, top: top * scaleY, width: (right - left) * scaleX, height: (bottom - top) * scaleY },
-            fontSize: Math.max(10, (bottom - top) / Math.max(paragraph.length, 1)),
-            fontFamily: "Morio Sans", fontWeight: "400", fontStyle: "normal", color: "currentColor",
-          };
-        }));
-        bitmap.close();
-        if (ocrBlocks.length) blocks = ocrBlocks;
-      }
+      const blocks = pageBlocks;
       if (!blocks.length) throw new Error("No text was detected on this page.");
-      const results = await Promise.all(blocks.map(async (block) => {
+      const paragraphTranslations: string[] = [];
+      const results = await Promise.all(blocks.map(async (block, index) => {
         const res = await translateText({
           data: { text: block.text, sourceLang, targetLang },
         });
         if (!res.ok) throw new Error(res.error);
-        return { ...block, translation: res.text };
-      }));
+        paragraphTranslations[index] = res.text.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+        const parts = block.parts ?? [{ text: block.text, rect: block.rect }];
+        if (parts.length === 1) return { ...block, translation: res.text };
+        const words = res.text.trim().split(/\s+/).filter(Boolean);
+        const totalChars = parts.reduce((sum, part) => sum + part.text.length, 0) || 1;
+        let wordIndex = 0;
+        const segmented = parts.map((part, index) => {
+          const remainingParts = parts.length - index - 1;
+          const targetChars = Math.round((part.text.length / totalChars) * words.length);
+          const count = index === parts.length - 1
+            ? words.length - wordIndex
+            : Math.max(0, Math.min(words.length - wordIndex - remainingParts, targetChars));
+          const translation = words.slice(wordIndex, wordIndex + count).join(" ");
+          wordIndex += count;
+          return { ...block, text: part.text, rect: part.rect, translation, parts: undefined };
+        });
+        return segmented;
+      })).then((items) => items.flat());
       setTranslatedBlocks(results);
-      setTranslatedPageText(results.map((block) => block.translation).join("\n\n"));
+      setTranslatedPageText(paragraphTranslations.join("\n\n"));
       setCurrent({ source: blocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n") });
       addHistory({ source: blocks.map((block) => block.text).join("\n\n"), translation: results.map((block) => block.translation).join("\n\n"), sourceLang, targetLang });
       setSettingsOpen(false);
@@ -380,6 +354,17 @@ function ReaderShell() {
   }
 
   const split = mode === "split";
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 767px)");
+    const syncMobileMode = () => {
+      if (mobileQuery.matches && mode === "split") setMode("float");
+    };
+    syncMobileMode();
+    mobileQuery.addEventListener("change", syncMobileMode);
+    return () => mobileQuery.removeEventListener("change", syncMobileMode);
+  }, [mode, setMode]);
+
   const canPrev = page > 1;
   const canNext = page < numPages;
 
@@ -431,7 +416,7 @@ function ReaderShell() {
           <img
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Morio%20book-dark%20mod-YFq92plZKjHgqOzYtNJeFjEFHNHdeQ.png"
             alt="Morio Book"
-            className="h-9 w-auto max-w-36 object-contain"
+            className="h-8 w-auto max-w-[7.5rem] object-contain sm:h-9 sm:max-w-36"
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[11px] font-medium text-white">
@@ -442,7 +427,7 @@ function ReaderShell() {
 
         <div
           dir="ltr"
-          className="mx-auto flex shrink-0 items-center gap-1 rounded-lg bg-white/10 px-1 py-0.5 shadow-[0_0_0_1px_rgba(255,255,255,0.14)]"
+          className="mx-auto hidden shrink-0 items-center gap-1 rounded-lg bg-white/10 px-1 py-0.5 shadow-[0_0_0_1px_rgba(255,255,255,0.14)] sm:flex"
         >
           <Button
             variant="ghost"
@@ -456,9 +441,37 @@ function ReaderShell() {
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <span className="min-w-16 px-1 text-center text-xs tabular-nums text-muted">
-            {page} / {numPages}
-          </span>
+          <label className="flex min-w-20 items-center justify-center gap-1 px-1 text-xs tabular-nums text-muted">
+            <span className="sr-only">Go to page</span>
+            <input
+              type="number"
+              min={1}
+              max={Math.max(numPages, 1)}
+              value={pageInput}
+              aria-label="Current page"
+              className="w-10 bg-transparent text-center text-xs text-fg outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                const previousValue = pageInput;
+                setPageInput(nextValue);
+                if (nextValue.length > previousValue.length) {
+                  const nextPage = Number(nextValue);
+                  if (Number.isFinite(nextPage)) setPage(Math.min(Math.max(1, nextPage), Math.max(numPages, 1)));
+                }
+              }}
+              onKeyDown={(event) => {
+                if ((event.nativeEvent as KeyboardEvent).isComposing || event.keyCode === 229) return;
+                if (event.key === "Enter") event.currentTarget.blur();
+              }}
+              onBlur={(event) => {
+                const nextPage = Number(event.currentTarget.value);
+                const normalized = Number.isFinite(nextPage) ? Math.min(Math.max(1, nextPage), Math.max(numPages, 1)) : page;
+                setPage(normalized);
+                setPageInput(String(normalized));
+              }}
+            />
+            <span aria-hidden="true">/ {numPages}</span>
+          </label>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -473,7 +486,7 @@ function ReaderShell() {
           </Button>
         </div>
 
-        <div className="ms-auto flex shrink-0 items-center gap-0.5">
+        <div className="ms-auto hidden shrink-0 items-center gap-0.5 sm:flex">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -499,7 +512,7 @@ function ReaderShell() {
             variant="ghost"
             size="icon-sm"
             aria-label={translatedBlocks ? "Restore original" : "Translate page"}
-            disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length && !pageImage)}
+            disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)}
             onClick={() => void translateWholePage()}
           >
             {pageTranslating ? (
@@ -554,19 +567,60 @@ function ReaderShell() {
         ) : null}
       </header>
 
+      <div className="fixed inset-x-2 bottom-14 z-50 flex items-center gap-0 rounded-2xl border border-white/10 bg-[var(--header)]/95 p-1.5 text-white shadow-[var(--shadow-float)] backdrop-blur-xl sm:hidden" dir="ltr">
+        <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Previous page" disabled={!canPrev} onClick={() => setPage(page - 1)}><ChevronLeft className="size-4" /></Button>
+        <label className="flex min-w-0 flex-[2] items-center justify-center gap-1 text-xs tabular-nums text-muted"><span className="sr-only">Go to page</span><input type="number" min={1} max={Math.max(numPages, 1)} value={pageInput} aria-label="Current page" className="w-8 bg-transparent text-center text-xs text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" onChange={(event) => { const nextValue = event.target.value; const previousValue = pageInput; setPageInput(nextValue); if (nextValue.length > previousValue.length) { const nextPage = Number(nextValue); if (Number.isFinite(nextPage)) setPage(Math.min(Math.max(1, nextPage), Math.max(numPages, 1))); } }} onBlur={(event) => { const nextPage = Number(event.currentTarget.value); const normalized = Number.isFinite(nextPage) ? Math.min(Math.max(1, nextPage), Math.max(numPages, 1)) : page; setPage(normalized); setPageInput(String(normalized)); }} /><span aria-hidden="true">/ {numPages}</span></label>
+        <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Next page" disabled={!canNext} onClick={() => setPage(page + 1)}><ChevronRight className="size-4" /></Button>
+        <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Zoom out" onClick={() => setZoom(zoom - 0.1)}><Minus className="size-4" /></Button><span className="w-10 shrink-0 text-center text-[10px] tabular-nums text-muted">{Math.round(zoom * 100)}%</span><Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Zoom in" onClick={() => setZoom(zoom + 0.1)}><Plus className="size-4" /></Button>
+      </div>
+      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-1 border-t border-white/10 bg-[var(--header)] p-1 text-white sm:hidden" dir="ltr">
+        <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label={translatedBlocks ? "Restore original" : "Translate page"} disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)} onClick={() => void translateWholePage()}>{pageTranslating ? <LoaderCircle className="size-4 animate-spin" /> : translatedPageText ? <RotateCcw className="size-4" /> : <Languages className="size-4" />}</Button>
+        <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Open another PDF" onClick={() => fileRef.current?.click()}><FileUp className="size-4" /></Button>
+        <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label={theme === "dark" ? "Light mode" : "Dark mode"} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>
+        <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Settings" onClick={() => setSettingsOpen(true)}><Settings2 className="size-4" /></Button>
+        {bookmarks.length ? <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Show bookmarks" onClick={() => setMobileBookmarksOpen(true)}><Bookmark className="size-4" /></Button> : <span />}
+      </div>
+
+      {mobileBookmarksOpen && bookmarks.length ? (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-bg p-4 sm:hidden" aria-label="PDF bookmarks">
+          <div className="flex shrink-0 items-center justify-between border-b border-border pb-3">
+            <h2 className="text-sm font-semibold text-fg">Bookmarks</h2>
+            <Button variant="ghost" size="icon-sm" aria-label="Close bookmarks" onClick={() => setMobileBookmarksOpen(false)}><X className="size-4" /></Button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3"><BookmarkTree items={bookmarks} onSelect={(targetPage) => { setPage(targetPage); setMobileBookmarksOpen(false); }} /></div>
+        </div>
+      ) : null}
+
       <div
-        className={cn(
-          "flex min-h-0 flex-1",
-          split
-            ? "flex-col md:grid md:grid-cols-10"
-            : "flex-col",
-        )}
+        className="flex min-h-0 flex-1 flex-col md:flex-row"
       >
+        {bookmarks.length ? (
+          <aside className={cn("relative hidden min-h-0 shrink-0 flex-col border-b border-border bg-elevated/40 md:flex md:h-full md:border-b-0 md:border-e", bookmarksOpen ? "md:w-64" : "md:w-10")} aria-label="PDF bookmarks">
+            {bookmarksOpen ? (
+              <>
+                <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-border px-3 text-xs font-medium text-fg">
+                  <span>Bookmarks</span>
+                  <button type="button" className="rounded-md p-1.5 text-muted hover:bg-fg/8 hover:text-fg" onClick={() => setBookmarksOpen(false)} aria-label="Hide bookmarks">
+                    <PanelLeft className="size-4" />
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2">
+                  <BookmarkTree items={bookmarks} onSelect={(targetPage) => setPage(targetPage)} />
+                </div>
+              </>
+            ) : (
+              <button type="button" className="flex h-10 w-full items-center justify-center rounded-md text-muted hover:bg-fg/8 hover:text-fg" onClick={() => setBookmarksOpen(true)} aria-label="Show bookmarks">
+                <PanelLeft className="size-4" />
+              </button>
+            )}
+          </aside>
+        ) : null}
         <PdfViewer
           source={pdfData}
           page={Math.min(page, numPages)}
           zoom={zoom}
           onZoomChange={setZoom}
+          onBookmarks={setBookmarks}
           onNumPages={(n) => {
             setNumPages(n);
             if (page > n) setPage(n);
@@ -574,7 +628,6 @@ function ReaderShell() {
           onSelection={handleSelection}
           pdfDarkMode={pdfDarkMode}
           onPageText={setPageText}
-          onPageImage={(blob, size) => setPageImage({ blob, ...size })}
           onTextItems={setPageTextItems}
           onTextBlocks={(blocks) => {
             setPageBlocks(blocks);
@@ -593,7 +646,7 @@ function ReaderShell() {
             });
           }}
           translatedBlocks={translatedBlocks}
-          className={split ? "md:col-span-7 min-h-0 max-md:min-h-0 max-md:flex-[1.2]" : ""}
+          className="min-h-[min(24rem,58dvh)] min-w-0 flex-1 max-md:flex-[2]"
         />
         {split ? (
           <TranslatePanel
@@ -601,7 +654,7 @@ function ReaderShell() {
             loading={loading}
             error={error}
             history={history}
-            className="max-md:max-h-[38%] md:col-span-3"
+            className="min-h-0 shrink-0 max-md:max-h-[28%] md:w-80 md:max-w-[30vw]"
           />
         ) : null}
       </div>
@@ -660,14 +713,16 @@ function ReaderShell() {
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-[11px] font-medium text-muted">Translation</p>
-            <button
-              type="button"
-              className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-fg/6 hover:text-fg"
-              aria-label="Close"
-              onClick={dismissTransient}
-            >
-              <X className="size-3.5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-fg/6 hover:text-fg"
+                aria-label="Close"
+                onClick={dismissTransient}
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
           </div>
           <p className="text-pretty text-sm leading-relaxed">{floatCard.text}</p>
         </aside>
@@ -693,6 +748,7 @@ function ReaderShell() {
           event.target.value = "";
         }}
       />
+
 
       {copyDialogOpen ? (
         <div
@@ -822,7 +878,7 @@ function SettingsDialog({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-bg/70" />
         <Dialog.Content
           data-settings-root=""
-          className="fixed start-0 top-0 z-50 flex h-dvh w-full max-w-md flex-col bg-elevated shadow-[var(--shadow-float)] outline-none"
+          className="fixed start-0 top-0 z-50 flex h-dvh w-full max-w-md flex-col overflow-hidden bg-elevated shadow-[var(--shadow-float)] outline-none"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <Dialog.Title className="text-sm font-medium">Settings</Dialog.Title>
@@ -851,7 +907,7 @@ function SettingsDialog({
 
             <section className="space-y-3">
               <h3 className="text-xs font-medium text-muted">Translation mode</h3>
-              <div className="grid gap-2">
+              <div className="hidden gap-2 md:grid md:grid-cols-2">
                 <ModeCard
                   active={mode === "split"}
                   title="70 / 30 split"
@@ -881,12 +937,12 @@ function SettingsDialog({
                   aria-label="Auto-translate"
                 />
               </div>
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-bg px-3 py-3 shadow-[var(--shadow-border)]">
+              <div className="flex flex-col items-stretch gap-2 rounded-xl bg-bg px-3 py-3 shadow-[var(--shadow-border)] sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <div>
                   <p className="text-sm font-medium">Appearance</p>
                   <p className="text-[11px] text-subtle">Light for paper, dark for night.</p>
                 </div>
-                <div className="flex rounded-lg bg-elevated p-0.5 shadow-[var(--shadow-border)]">
+                <div className="flex w-full rounded-lg bg-elevated p-0.5 shadow-[var(--shadow-border)] sm:w-auto">
                   <ThemeChip
                     active={theme === "system"}
                     onClick={() => setTheme("system")}

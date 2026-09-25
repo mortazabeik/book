@@ -16,9 +16,18 @@ export type SelectionPayload = {
   rects: OverlayRect[];
 };
 
+export type PdfBookmark = {
+  title: string;
+  page: number | null;
+  children: PdfBookmark[];
+};
+
 export type TextBlock = {
   text: string;
   rect: OverlayRect;
+  parts?: Array<{ text: string; rect: OverlayRect }>;
+  paragraphSignature?: string;
+
   fontSize: number;
   fontFamily: string;
   fontWeight: string;
@@ -33,9 +42,9 @@ type PdfViewerProps = {
   pdfDarkMode: boolean;
   onZoomChange: (zoom: number) => void;
   onNumPages: (n: number) => void;
+  onBookmarks?: (bookmarks: PdfBookmark[]) => void;
   onSelection: (payload: SelectionPayload | null) => void;
   onPageText?: (text: string) => void;
-  onPageImage?: (image: Blob, size: { width: number; height: number; pixelWidth: number; pixelHeight: number }) => void;
   onTextItems?: (items: string[]) => void;
   onTextBlocks?: (blocks: TextBlock[]) => void;
   translatedBlocks?: Array<TextBlock & { translation: string }> | null;
@@ -49,9 +58,9 @@ export function PdfViewer({
   pdfDarkMode,
   onZoomChange,
   onNumPages,
+  onBookmarks,
   onSelection,
   onPageText,
-  onPageImage,
   onTextItems,
   onTextBlocks,
   translatedBlocks,
@@ -65,13 +74,13 @@ export function PdfViewer({
   const renderTaskRef = useRef<RenderTask | null>(null);
   const onNumPagesRef = useRef(onNumPages);
   const onSelectionRef = useRef(onSelection);
+  const onBookmarksRef = useRef(onBookmarks);
   const onPageTextRef = useRef(onPageText);
-  const onPageImageRef = useRef(onPageImage);
   const onTextItemsRef = useRef(onTextItems);
   onNumPagesRef.current = onNumPages;
   onSelectionRef.current = onSelection;
+  onBookmarksRef.current = onBookmarks;
   onPageTextRef.current = onPageText;
-  onPageImageRef.current = onPageImage;
   onTextItemsRef.current = onTextItems;
   const onTextBlocksRef = useRef(onTextBlocks);
   onTextBlocksRef.current = onTextBlocks;
@@ -124,6 +133,21 @@ export function PdfViewer({
         if (cancelled) return;
         pdfRef.current = pdf;
         onNumPagesRef.current(pdf.numPages);
+        const outline = await pdf.getOutline();
+        const resolveBookmarks = async (items: any[]): Promise<PdfBookmark[]> => Promise.all((items ?? []).map(async (item) => {
+          let bookmarkPage: number | null = null;
+          if (item.dest) {
+            try {
+              const destination = typeof item.dest === "string" ? await pdf.getDestination(item.dest) : item.dest;
+              const ref = destination?.[0];
+              if (ref) bookmarkPage = (await pdf.getPageIndex(ref)) + 1;
+            } catch {
+              bookmarkPage = null;
+            }
+          }
+          return { title: String(item.title ?? "Untitled"), page: bookmarkPage, children: await resolveBookmarks(item.items) };
+        }));
+        onBookmarksRef.current?.(await resolveBookmarks(outline ?? []));
         setDocGen((n) => n + 1);
       } catch {
         if (cancelled) return;
@@ -189,16 +213,16 @@ export function PdfViewer({
       renderTaskRef.current?.cancel();
       const transform =
         outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
-      const renderTask = pdfPage.render({
-        canvas,
-        canvasContext: ctx,
-        viewport,
-        transform,
-      });
-      renderTaskRef.current = renderTask;
+  const renderTask = pdfPage.render({
+  canvas,
+  canvasContext: ctx,
+  viewport,
+  transform,
+  });
+  renderTaskRef.current = renderTask;
 
-      try {
-        await renderTask.promise;
+  try {
+  await renderTask.promise;
       } catch (err) {
         const name = err instanceof Error ? err.name : "";
         if (name === "RenderingCancelledException" || cancelled) return;
@@ -207,14 +231,6 @@ export function PdfViewer({
         return;
       }
       if (cancelled) return;
-
-      const imageBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-      if (imageBlob) onPageImageRef.current?.(imageBlob, {
-        width: viewport.width,
-        height: viewport.height,
-        pixelWidth: canvas.width,
-        pixelHeight: canvas.height,
-      });
 
       const textContent = await pdfPage.getTextContent();
       if (cancelled) return;
@@ -230,8 +246,13 @@ export function PdfViewer({
           .filter(Boolean),
       );
       const blocks: TextBlock[] = [];
+      let pendingLineBreak = false;
       for (const item of textContent.items) {
-        if (!("str" in item) || typeof item.str !== "string" || !item.str.trim()) continue;
+        const hasText = "str" in item && typeof item.str === "string" && Boolean(item.str.trim());
+        if (!hasText) {
+          pendingLineBreak ||= "hasEOL" in item && item.hasEOL === true;
+          continue;
+        }
         const style = textContent.styles[item.fontName];
         const [, , , scaleY, x, y] = item.transform;
         const fontSize = Math.max(8, Math.abs(scaleY) * scale);
@@ -257,16 +278,42 @@ export function PdfViewer({
         };
         const signature = `${item.fontName}:${Math.round(fontSize)}:${style?.fontFamily ?? "sans-serif"}`;
         const previous = blocks[blocks.length - 1];
-        const previousSignature = previous ? `${previous.fontFamily}:${Math.round(previous.fontSize)}` : "";
-        if (previous && previousSignature === `${style?.fontFamily ?? "sans-serif"}:${Math.round(fontSize)}` && Math.abs(rect.top - (previous.rect.top + previous.rect.height)) < fontSize * 2.5) {
+        const currentSignature = `${item.fontName}:${style?.fontFamily ?? "sans-serif"}:${Math.round(fontSize)}`;
+        const styleMatches = previous?.paragraphSignature === currentSignature;
+        const paragraphBoundary = Boolean(previous && !styleMatches && pendingLineBreak);
+        const sameParagraph = previous && !paragraphBoundary;
+        if (sameParagraph) {
           previous.text = `${previous.text} ${item.str}`.replace(/\s+/g, " ").trim();
-          const rightEdge = Math.max(previous.rect.left + previous.rect.width, rect.left + rect.width);
-          previous.rect.width = rightEdge - previous.rect.left;
-          previous.rect.height = Math.max(previous.rect.height, rect.top + rect.height - previous.rect.top);
+          const previousRight = previous.rect.left + previous.rect.width;
+          const previousBottom = previous.rect.top + previous.rect.height;
+          const currentRight = rect.left + rect.width;
+          const currentBottom = rect.top + rect.height;
+          const mergedLeft = Math.min(previous.rect.left, rect.left);
+          const mergedTop = Math.min(previous.rect.top, rect.top);
+          previous.rect = {
+            left: mergedLeft,
+            top: mergedTop,
+            width: Math.max(previousRight, currentRight) - mergedLeft,
+            height: Math.max(previousBottom, currentBottom) - mergedTop,
+          };
+          previous.parts ??= [{ text: previous.text, rect: previous.rect }];
+          const lastPart = previous.parts.at(-1);
+          if (pendingLineBreak || !lastPart) {
+            previous.parts.push({ text: item.str.trim(), rect });
+          } else {
+            lastPart.text = `${lastPart.text} ${item.str}`.replace(/\s+/g, " ").trim();
+            const right = Math.max(lastPart.rect.left + lastPart.rect.width, rect.left + rect.width);
+            const bottom = Math.max(lastPart.rect.top + lastPart.rect.height, rect.top + rect.height);
+            const left = Math.min(lastPart.rect.left, rect.left);
+            const top = Math.min(lastPart.rect.top, rect.top);
+            lastPart.rect = { left, top, width: right - left, height: bottom - top };
+          }
         } else {
           blocks.push({
             text: item.str.trim(),
             rect,
+            parts: [{ text: item.str.trim(), rect }],
+            paragraphSignature: currentSignature,
             fontSize,
             fontFamily: style?.fontFamily ?? "sans-serif",
             fontWeight: "400",
@@ -274,6 +321,7 @@ export function PdfViewer({
             color: "currentColor",
           });
         }
+        pendingLineBreak = "hasEOL" in item && item.hasEOL === true;
       }
       onTextBlocksRef.current?.(blocks);
       textLayerDiv.innerHTML = "";
@@ -297,7 +345,19 @@ export function PdfViewer({
     };
   }, [docGen, page, zoom, viewWidth]);
 
-  function handleMouseUp(event: MouseEvent<HTMLDivElement>) {
+  const selectionPointRef = useRef({ x: 0, y: 0 });
+  const selectionFrameRef = useRef<number | null>(null);
+
+  function scheduleSelectionCommit() {
+    if (selectionFrameRef.current !== null) cancelAnimationFrame(selectionFrameRef.current);
+    selectionFrameRef.current = requestAnimationFrame(() => {
+      selectionFrameRef.current = null;
+      const point = selectionPointRef.current;
+      commitSelection(point.x, point.y);
+    });
+  }
+
+  function commitSelection(x: number, y: number) {
     const layer = textLayerRef.current;
     if (!layer) return;
     const sel = window.getSelection();
@@ -329,11 +389,35 @@ export function PdfViewer({
       }));
     onSelectionRef.current({
       text,
-      mouseX: event.clientX,
-      mouseY: event.clientY,
+      mouseX: x,
+      mouseY: y,
       rects,
     });
   }
+
+  function handleMouseUp(event: MouseEvent<HTMLDivElement>) {
+    selectionPointRef.current = { x: event.clientX, y: event.clientY };
+    scheduleSelectionCommit();
+  }
+
+  function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {
+    selectionPointRef.current = { x: event.clientX, y: event.clientY };
+    handlePointerUp(event);
+    scheduleSelectionCommit();
+  }
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const selection = window.getSelection();
+      const anchor = selection?.anchorNode;
+      if (anchor && textLayerRef.current?.contains(anchor)) scheduleSelectionCommit();
+    };
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", handleSelectionChange);
+      if (selectionFrameRef.current !== null) cancelAnimationFrame(selectionFrameRef.current);
+    };
+  }, []);
 
   const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
@@ -345,6 +429,7 @@ export function PdfViewer({
   }
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    selectionPointRef.current = { x: event.clientX, y: event.clientY };
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (pointersRef.current.size === 2) {
       const points = [...pointersRef.current.values()];
@@ -381,13 +466,14 @@ export function PdfViewer({
       onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+      onSelect={scheduleSelectionCommit}
     >
       <div className="flex min-h-full justify-center p-4 sm:p-6">
         <div
           ref={pageRef}
-          className="pdf-page relative bg-paper shadow-[var(--shadow-page)]"
+          className={cn("pdf-page relative bg-paper shadow-[var(--shadow-page)]", pdfDarkMode && "pdf-page-dark")}
           style={{
             width: pageSize.width,
             height: pageSize.height,
@@ -400,7 +486,10 @@ export function PdfViewer({
   {translatedBlocks?.map((block, index) => {
   const blockWidth = Math.max(block.rect.width, 24);
   const originalFontSize = Math.max(block.fontSize, 10);
-  const fittedFontSize = originalFontSize;
+  const estimatedWidth = block.translation.length * originalFontSize * 0.56;
+  const fittedFontSize = estimatedWidth > blockWidth
+    ? Math.max(7, (blockWidth / Math.max(estimatedWidth, 1)) * originalFontSize)
+    : originalFontSize;
   return (
   <div
   key={`${index}-${block.text.slice(0, 12)}`}
@@ -409,11 +498,11 @@ export function PdfViewer({
               aria-label="Translated paragraph"
               style={{
                 left: block.rect.left,
-                top: block.rect.top,
+                top: block.rect.top - fittedFontSize * 0.75,
   width: blockWidth,
   minHeight: fittedFontSize * 1.35,
   fontSize: fittedFontSize,
-                fontFamily: block.fontFamily,
+                fontFamily: "Vazirmatn",
                 fontWeight: block.fontWeight,
                 fontStyle: block.fontStyle,
               }}

@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap");
 @import "tailwindcss";
 
 @font-face {
@@ -278,14 +279,16 @@
   z-index: 3;
   box-sizing: border-box;
   overflow: hidden;
-  padding: 0;
+  padding: 0.12em 0.28em;
   border-radius: 0.35em;
   background: color-mix(in srgb, var(--paper) 94%, var(--accent));
+  border: 0;
   color: var(--fg);
   line-height: 1.35;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent);
+  font-family: "Vazirmatn", sans-serif;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  box-shadow: none;
   user-select: text;
 }
 

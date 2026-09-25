@@ -20,6 +20,7 @@ type SettingsState = {
   mode: TranslateMode;
   autoTranslate: boolean;
   pdfDarkMode: boolean;
+  bookmarksOpen: boolean;
   page: number;
   zoom: number;
   pdfSource: "default" | "upload";
@@ -31,6 +32,7 @@ type SettingsState = {
   setMode: (mode: TranslateMode) => void;
   setAutoTranslate: (value: boolean) => void;
   setPdfDarkMode: (value: boolean) => void;
+  setBookmarksOpen: (value: boolean) => void;
   setPage: (page: number) => void;
   setZoom: (zoom: number) => void;
   setPdfSource: (source: "default" | "upload", name?: string) => void;
@@ -49,6 +51,7 @@ export const useSettings = create<SettingsState>()(
       mode: "split",
       autoTranslate: false,
       pdfDarkMode: false,
+      bookmarksOpen: true,
       page: 1,
       zoom: 1,
       pdfSource: "default",
@@ -60,8 +63,9 @@ export const useSettings = create<SettingsState>()(
       setMode: (mode) => set({ mode }),
       setAutoTranslate: (autoTranslate) => set({ autoTranslate }),
       setPdfDarkMode: (pdfDarkMode) => set({ pdfDarkMode }),
+      setBookmarksOpen: (bookmarksOpen) => set({ bookmarksOpen }),
       setPage: (page) => set({ page: Math.max(1, page) }),
-      setZoom: (zoom) => set({ zoom: Math.min(2.4, Math.max(0.6, zoom)) }),
+      setZoom: (zoom) => set({ zoom: Math.min(3, Math.max(0.2, zoom)) }),
       setPdfSource: (pdfSource, name) =>
         set({
           pdfSource,
@@ -90,6 +94,7 @@ export const useSettings = create<SettingsState>()(
         mode: state.mode,
         autoTranslate: state.autoTranslate,
         pdfDarkMode: state.pdfDarkMode,
+        bookmarksOpen: state.bookmarksOpen,
         page: state.page,
         zoom: state.zoom,
         pdfSource: state.pdfSource,
