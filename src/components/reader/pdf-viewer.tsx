@@ -345,7 +345,9 @@ export function PdfViewer({
     };
   }, [docGen, page, zoom, viewWidth]);
 
-  function handleMouseUp(event: MouseEvent<HTMLDivElement>) {
+  const selectionPointRef = useRef({ x: 0, y: 0 });
+
+  function commitSelection(x: number, y: number) {
     const layer = textLayerRef.current;
     if (!layer) return;
     const sel = window.getSelection();
@@ -377,10 +379,22 @@ export function PdfViewer({
       }));
     onSelectionRef.current({
       text,
-      mouseX: event.clientX,
-      mouseY: event.clientY,
+      mouseX: x,
+      mouseY: y,
       rects,
     });
+  }
+
+  function handleMouseUp(event: MouseEvent<HTMLDivElement>) {
+    selectionPointRef.current = { x: event.clientX, y: event.clientY };
+    requestAnimationFrame(() => commitSelection(event.clientX, event.clientY));
+  }
+
+  function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {
+    selectionPointRef.current = { x: event.clientX, y: event.clientY };
+    handlePointerUp(event);
+    const point = selectionPointRef.current;
+    requestAnimationFrame(() => requestAnimationFrame(() => commitSelection(point.x, point.y)));
   }
 
   const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
@@ -393,6 +407,7 @@ export function PdfViewer({
   }
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    selectionPointRef.current = { x: event.clientX, y: event.clientY };
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (pointersRef.current.size === 2) {
       const points = [...pointersRef.current.values()];
@@ -429,8 +444,8 @@ export function PdfViewer({
       onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
     >
       <div className="flex min-h-full justify-center p-4 sm:p-6">
         <div
