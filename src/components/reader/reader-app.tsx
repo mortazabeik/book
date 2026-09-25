@@ -20,6 +20,8 @@ import {
   X,
   ChevronDown,
   PanelLeft,
+  Menu,
+  Bookmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -105,6 +107,8 @@ function ReaderShell() {
   const [pdfData, setPdfData] = useState<string | ArrayBuffer>(DEFAULT_PDF_URL);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [bookmarks, setBookmarks] = useState<PdfBookmark[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileBookmarksOpen, setMobileBookmarksOpen] = useState(false);
   const [pending, setPending] = useState<SelectionPayload | null>(null);
   const [showBtn, setShowBtn] = useState(false);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
@@ -578,22 +582,33 @@ function ReaderShell() {
         <Button variant="ghost" size="icon-sm" aria-label="Zoom out" onClick={() => setZoom(zoom - 0.1)}><Minus className="size-4" /></Button>
         <span className="min-w-9 text-center text-[10px] tabular-nums text-muted">{Math.round(zoom * 100)}%</span>
         <Button variant="ghost" size="icon-sm" aria-label="Zoom in" onClick={() => setZoom(zoom + 0.1)}><Plus className="size-4" /></Button>
-        <div className="mx-0.5 h-5 w-px bg-white/15" />
-        <Button variant="ghost" size="icon-sm" aria-label={translatedBlocks ? "Restore original" : "Translate page"} disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)} onClick={() => void translateWholePage()}>
-          {pageTranslating ? <LoaderCircle className="size-4 animate-spin" /> : translatedPageText ? <RotateCcw className="size-4" /> : <Languages className="size-4" />}
-        </Button>
-        <Button variant="ghost" size="icon-sm" aria-label="Open another PDF" onClick={() => fileRef.current?.click()}><FileUp className="size-4" /></Button>
-        <Button variant="ghost" size="icon-sm" aria-label={theme === "dark" ? "Light mode" : "Dark mode"} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-          {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        </Button>
-        <Button variant="ghost" size="icon-sm" aria-label="Settings" onClick={() => setSettingsOpen(true)}><Settings2 className="size-4" /></Button>
+        <Button variant="ghost" size="icon-sm" aria-label="Open mobile tools" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)}><Menu className="size-4" /></Button>
+        {mobileMenuOpen ? (
+          <div className="absolute inset-x-1 bottom-full mb-2 grid grid-cols-4 gap-1 rounded-2xl border border-white/10 bg-[var(--header)]/95 p-2 shadow-[var(--shadow-float)] backdrop-blur-xl">
+            <Button variant="ghost" size="icon-sm" aria-label={translatedBlocks ? "Restore original" : "Translate page"} disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)} onClick={() => void translateWholePage()}>{pageTranslating ? <LoaderCircle className="size-4 animate-spin" /> : translatedPageText ? <RotateCcw className="size-4" /> : <Languages className="size-4" />}</Button>
+            <Button variant="ghost" size="icon-sm" aria-label="Open another PDF" onClick={() => fileRef.current?.click()}><FileUp className="size-4" /></Button>
+            <Button variant="ghost" size="icon-sm" aria-label={theme === "dark" ? "Light mode" : "Dark mode"} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>
+            <Button variant="ghost" size="icon-sm" aria-label="Settings" onClick={() => setSettingsOpen(true)}><Settings2 className="size-4" /></Button>
+            {bookmarks.length ? <Button variant="ghost" size="icon-sm" aria-label="Show bookmarks" onClick={() => { setMobileBookmarksOpen(true); setMobileMenuOpen(false); }}><Bookmark className="size-4" /></Button> : null}
+          </div>
+        ) : null}
       </div>
+
+      {mobileBookmarksOpen && bookmarks.length ? (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-bg p-4 sm:hidden" aria-label="PDF bookmarks">
+          <div className="flex shrink-0 items-center justify-between border-b border-border pb-3">
+            <h2 className="text-sm font-semibold text-fg">Bookmarks</h2>
+            <Button variant="ghost" size="icon-sm" aria-label="Close bookmarks" onClick={() => setMobileBookmarksOpen(false)}><X className="size-4" /></Button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3"><BookmarkTree items={bookmarks} onSelect={(targetPage) => { setPage(targetPage); setMobileBookmarksOpen(false); }} /></div>
+        </div>
+      ) : null}
 
       <div
         className="flex min-h-0 flex-1 flex-col md:flex-row"
       >
         {bookmarks.length ? (
-          <aside className={cn("relative flex min-h-0 shrink-0 flex-col border-b border-border bg-elevated/40 max-md:h-[30dvh] max-md:max-h-[30dvh] md:h-full md:border-b-0 md:border-e", bookmarksOpen ? "md:w-64" : "md:w-10")} aria-label="PDF bookmarks">
+          <aside className={cn("relative hidden min-h-0 shrink-0 flex-col border-b border-border bg-elevated/40 md:flex md:h-full md:border-b-0 md:border-e", bookmarksOpen ? "md:w-64" : "md:w-10")} aria-label="PDF bookmarks">
             {bookmarksOpen ? (
               <>
                 <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-border px-3 text-xs font-medium text-fg">
