@@ -435,11 +435,11 @@ export function PdfViewer({
               aria-label="Translated paragraph"
               style={{
                 left: block.rect.left,
-                top: block.rect.top - fittedFontSize * 0.5,
+                top: block.rect.top - fittedFontSize * 0.75,
   width: blockWidth,
   minHeight: fittedFontSize * 1.35,
   fontSize: fittedFontSize,
-                fontFamily: block.fontFamily,
+                fontFamily: "Vazirmatn",
                 fontWeight: block.fontWeight,
                 fontStyle: block.fontStyle,
               }}
