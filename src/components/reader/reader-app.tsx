@@ -616,7 +616,7 @@ function ReaderShell() {
             loading={loading}
             error={error}
             history={history}
-            className="max-md:max-h-[38%] md:col-span-3"
+            className="min-h-0 shrink-0 max-md:max-h-[38%] md:w-80 md:max-w-[30vw]"
           />
         ) : null}
       </div>
