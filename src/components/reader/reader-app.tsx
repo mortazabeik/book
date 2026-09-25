@@ -482,6 +482,24 @@ function ReaderShell() {
           </Button>
           <Button
             variant="ghost"
+            size="icon-sm"
+            aria-label="Read original text"
+            disabled={!pageText}
+            onClick={() => speakText(pageText, sourceLang)}
+          >
+            <Volume2 className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Read translated text"
+            disabled={!translatedPageText}
+            onClick={() => speakText(translatedPageText ?? "", targetLang)}
+          >
+            <Languages className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
             size="icon"
             aria-label="Open another PDF"
             onClick={() => fileRef.current?.click()}
@@ -630,12 +648,6 @@ function ReaderShell() {
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-[11px] font-medium text-muted">Translation</p>
             <div className="flex items-center gap-1">
-              <button type="button" className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-fg/6 hover:text-fg" aria-label="Read original text" onClick={() => speakText(floatCard.source, sourceLang)}>
-                <Volume2 className="size-3.5" />
-              </button>
-              <button type="button" className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-fg/6 hover:text-fg" aria-label="Read translated text" onClick={() => speakText(floatCard.text, targetLang)}>
-                <Languages className="size-3.5" />
-              </button>
               <button
                 type="button"
                 className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-fg/6 hover:text-fg"
