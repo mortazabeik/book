@@ -61,7 +61,7 @@ export const useSettings = create<SettingsState>()(
       setAutoTranslate: (autoTranslate) => set({ autoTranslate }),
       setPdfDarkMode: (pdfDarkMode) => set({ pdfDarkMode }),
       setPage: (page) => set({ page: Math.max(1, page) }),
-      setZoom: (zoom) => set({ zoom: Math.min(2.4, Math.max(0.6, zoom)) }),
+      setZoom: (zoom) => set({ zoom: Math.min(3, Math.max(0.2, zoom)) }),
       setPdfSource: (pdfSource, name) =>
         set({
           pdfSource,
