@@ -246,26 +246,6 @@ var Maximize2 = createLucideIcon("maximize-2", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-var Menu = createLucideIcon("menu", [
-	["path", {
-		d: "M4 12h16",
-		key: "1lakjw"
-	}],
-	["path", {
-		d: "M4 18h16",
-		key: "19g7jn"
-	}],
-	["path", {
-		d: "M4 6h16",
-		key: "1o0s65"
-	}]
-]);
-/**
-* @license lucide-react v0.510.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
 var Minimize2 = createLucideIcon("minimize-2", [
 	["polyline", {
 		points: "4 14 10 14 10 20",
@@ -461,4 +441,4 @@ var X = createLucideIcon("x", [["path", {
 	key: "d8bk6v"
 }]]);
 //#endregion
-export { ChevronRight as _, RotateCcw as a, Check as b, Moon as c, Menu as d, Maximize2 as f, Copy as g, FileUp as h, Settings2 as i, Minus as l, Languages as m, TriangleAlert as n, Plus as o, LoaderCircle as p, Sun as r, PanelLeft as s, X as t, Minimize2 as u, ChevronLeft as v, Bookmark as x, ChevronDown as y };
+export { ChevronLeft as _, RotateCcw as a, Bookmark as b, Moon as c, Maximize2 as d, LoaderCircle as f, ChevronRight as g, Copy as h, Settings2 as i, Minus as l, FileUp as m, TriangleAlert as n, Plus as o, Languages as p, Sun as r, PanelLeft as s, X as t, Minimize2 as u, ChevronDown as v, Check as y };
