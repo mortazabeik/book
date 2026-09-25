@@ -76,12 +76,17 @@ function ReaderShell() {
   const addHistory = useSettings((s) => s.addHistory);
 
   const [numPages, setNumPages] = useState(1);
+  const [pageInput, setPageInput] = useState(String(page));
   const [pdfData, setPdfData] = useState<string | ArrayBuffer>(DEFAULT_PDF_URL);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pending, setPending] = useState<SelectionPayload | null>(null);
   const [showBtn, setShowBtn] = useState(false);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [btnPos, setBtnPos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    setPageInput(String(page));
+  }, [page]);
 
   useEffect(() => {
     if (!copyDialogOpen) return;
@@ -404,12 +409,17 @@ function ReaderShell() {
               type="number"
               min={1}
               max={Math.max(numPages, 1)}
-              value={page}
+              value={pageInput}
               aria-label="Current page"
               className="w-10 bg-transparent text-center text-xs text-fg outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               onChange={(event) => {
-                const nextPage = Number(event.target.value);
-                if (Number.isFinite(nextPage)) setPage(Math.min(Math.max(1, nextPage), Math.max(numPages, 1)));
+                const nextValue = event.target.value;
+                const previousValue = pageInput;
+                setPageInput(nextValue);
+                if (nextValue.length > previousValue.length) {
+                  const nextPage = Number(nextValue);
+                  if (Number.isFinite(nextPage)) setPage(Math.min(Math.max(1, nextPage), Math.max(numPages, 1)));
+                }
               }}
               onKeyDown={(event) => {
                 if ((event.nativeEvent as KeyboardEvent).isComposing || event.keyCode === 229) return;
@@ -417,7 +427,9 @@ function ReaderShell() {
               }}
               onBlur={(event) => {
                 const nextPage = Number(event.currentTarget.value);
-                setPage(Number.isFinite(nextPage) ? Math.min(Math.max(1, nextPage), Math.max(numPages, 1)) : 1);
+                const normalized = Number.isFinite(nextPage) ? Math.min(Math.max(1, nextPage), Math.max(numPages, 1)) : page;
+                setPage(normalized);
+                setPageInput(String(normalized));
               }}
             />
             <span aria-hidden="true">/ {numPages}</span>
