@@ -286,6 +286,23 @@ var Moon = createLucideIcon("moon", [["path", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var PanelLeft = createLucideIcon("panel-left", [["rect", {
+	width: "18",
+	height: "18",
+	x: "3",
+	y: "3",
+	rx: "2",
+	key: "afitv7"
+}], ["path", {
+	d: "M9 3v18",
+	key: "fh3hqa"
+}]]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var Plus = createLucideIcon("plus", [["path", {
 	d: "M5 12h14",
 	key: "1ays0h"
@@ -414,4 +431,4 @@ var X = createLucideIcon("x", [["path", {
 	key: "d8bk6v"
 }]]);
 //#endregion
-export { ChevronDown as _, RotateCcw as a, Minus as c, LoaderCircle as d, Languages as f, ChevronLeft as g, ChevronRight as h, Settings2 as i, Minimize2 as l, Copy as m, TriangleAlert as n, Plus as o, FileUp as p, Sun as r, Moon as s, X as t, Maximize2 as u, Check as v };
+export { ChevronLeft as _, RotateCcw as a, Moon as c, Maximize2 as d, LoaderCircle as f, ChevronRight as g, Copy as h, Settings2 as i, Minus as l, FileUp as m, TriangleAlert as n, Plus as o, Languages as p, Sun as r, PanelLeft as s, X as t, Minimize2 as u, ChevronDown as v, Check as y };

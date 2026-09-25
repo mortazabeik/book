@@ -19,6 +19,7 @@ import {
   Sun,
   X,
   ChevronDown,
+  PanelLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -553,20 +554,27 @@ function ReaderShell() {
       </header>
 
       <div
-        className={cn(
-          "flex min-h-0 flex-1",
-          split
-            ? "flex-col md:grid md:grid-cols-10"
-            : "flex-col",
-        )}
+        className="flex min-h-0 flex-1 flex-col md:flex-row"
       >
         {bookmarks.length ? (
-          <aside className={cn("shrink-0 border-b border-border bg-elevated/40 md:border-b-0 md:border-e md:w-64", !bookmarksOpen && "md:w-11")} aria-label="PDF bookmarks">
-            <button type="button" className="flex h-10 w-full items-center justify-between gap-2 px-3 text-xs font-medium text-fg hover:bg-fg/6" onClick={() => setBookmarksOpen((open) => !open)} aria-expanded={bookmarksOpen}>
-              {bookmarksOpen ? <span>Bookmarks</span> : <span className="sr-only">Show bookmarks</span>}
-              <ChevronDown className={cn("size-4 transition-transform", !bookmarksOpen && "-rotate-90")} />
-            </button>
-            {bookmarksOpen ? <div className="max-h-48 overflow-auto px-2 pb-3 md:max-h-none"><BookmarkTree items={bookmarks} onSelect={(targetPage) => setPage(targetPage)} /></div> : null}
+          <aside className={cn("relative flex min-h-0 shrink-0 flex-col border-b border-border bg-elevated/40 md:h-full md:border-b-0 md:border-e", bookmarksOpen ? "md:w-64" : "md:w-10")} aria-label="PDF bookmarks">
+            {bookmarksOpen ? (
+              <>
+                <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-border px-3 text-xs font-medium text-fg">
+                  <span>Bookmarks</span>
+                  <button type="button" className="rounded-md p-1.5 text-muted hover:bg-fg/8 hover:text-fg" onClick={() => setBookmarksOpen(false)} aria-label="Hide bookmarks">
+                    <PanelLeft className="size-4" />
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2">
+                  <BookmarkTree items={bookmarks} onSelect={(targetPage) => setPage(targetPage)} />
+                </div>
+              </>
+            ) : (
+              <button type="button" className="flex h-10 w-full items-center justify-center rounded-md text-muted hover:bg-fg/8 hover:text-fg" onClick={() => setBookmarksOpen(true)} aria-label="Show bookmarks">
+                <PanelLeft className="size-4" />
+              </button>
+            )}
           </aside>
         ) : null}
         <PdfViewer
@@ -600,7 +608,7 @@ function ReaderShell() {
             });
           }}
           translatedBlocks={translatedBlocks}
-          className={split ? "md:col-span-7 min-h-0 max-md:min-h-0 max-md:flex-[1.2]" : ""}
+          className="min-h-0 min-w-0 flex-1 max-md:flex-[1.2]"
         />
         {split ? (
           <TranslatePanel
