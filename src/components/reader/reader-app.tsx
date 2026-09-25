@@ -96,6 +96,8 @@ function ReaderShell() {
   const setPage = useSettings((s) => s.setPage);
   const setZoom = useSettings((s) => s.setZoom);
   const setPdfSource = useSettings((s) => s.setPdfSource);
+  const bookmarksOpen = useSettings((s) => s.bookmarksOpen);
+  const setBookmarksOpen = useSettings((s) => s.setBookmarksOpen);
   const addHistory = useSettings((s) => s.addHistory);
 
   const [numPages, setNumPages] = useState(1);
@@ -103,7 +105,6 @@ function ReaderShell() {
   const [pdfData, setPdfData] = useState<string | ArrayBuffer>(DEFAULT_PDF_URL);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [bookmarks, setBookmarks] = useState<PdfBookmark[]>([]);
-  const [bookmarksOpen, setBookmarksOpen] = useState(true);
   const [pending, setPending] = useState<SelectionPayload | null>(null);
   const [showBtn, setShowBtn] = useState(false);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
@@ -592,7 +593,7 @@ function ReaderShell() {
         className="flex min-h-0 flex-1 flex-col md:flex-row"
       >
         {bookmarks.length ? (
-          <aside className={cn("relative flex min-h-0 shrink-0 flex-col border-b border-border bg-elevated/40 md:h-full md:border-b-0 md:border-e", bookmarksOpen ? "md:w-64" : "md:w-10")} aria-label="PDF bookmarks">
+          <aside className={cn("relative flex min-h-0 shrink-0 flex-col border-b border-border bg-elevated/40 max-md:h-[30dvh] max-md:max-h-[30dvh] md:h-full md:border-b-0 md:border-e", bookmarksOpen ? "md:w-64" : "md:w-10")} aria-label="PDF bookmarks">
             {bookmarksOpen ? (
               <>
                 <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-border px-3 text-xs font-medium text-fg">
