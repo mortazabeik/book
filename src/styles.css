@@ -251,10 +251,6 @@
   background: #17191c;
 }
 
-.pdf-page-dark .textLayer {
-  filter: invert(1) hue-rotate(180deg);
-}
-
 .pdf-page {
   --total-scale-factor: 1;
 }
