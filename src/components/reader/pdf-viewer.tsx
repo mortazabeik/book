@@ -346,6 +346,16 @@ export function PdfViewer({
   }, [docGen, page, zoom, viewWidth]);
 
   const selectionPointRef = useRef({ x: 0, y: 0 });
+  const selectionFrameRef = useRef<number | null>(null);
+
+  function scheduleSelectionCommit() {
+    if (selectionFrameRef.current !== null) cancelAnimationFrame(selectionFrameRef.current);
+    selectionFrameRef.current = requestAnimationFrame(() => {
+      selectionFrameRef.current = null;
+      const point = selectionPointRef.current;
+      commitSelection(point.x, point.y);
+    });
+  }
 
   function commitSelection(x: number, y: number) {
     const layer = textLayerRef.current;
@@ -387,15 +397,27 @@ export function PdfViewer({
 
   function handleMouseUp(event: MouseEvent<HTMLDivElement>) {
     selectionPointRef.current = { x: event.clientX, y: event.clientY };
-    requestAnimationFrame(() => commitSelection(event.clientX, event.clientY));
+    scheduleSelectionCommit();
   }
 
   function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {
     selectionPointRef.current = { x: event.clientX, y: event.clientY };
     handlePointerUp(event);
-    const point = selectionPointRef.current;
-    requestAnimationFrame(() => requestAnimationFrame(() => commitSelection(point.x, point.y)));
+    scheduleSelectionCommit();
   }
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const selection = window.getSelection();
+      const anchor = selection?.anchorNode;
+      if (anchor && textLayerRef.current?.contains(anchor)) scheduleSelectionCommit();
+    };
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", handleSelectionChange);
+      if (selectionFrameRef.current !== null) cancelAnimationFrame(selectionFrameRef.current);
+    };
+  }, []);
 
   const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
@@ -446,6 +468,7 @@ export function PdfViewer({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerEnd}
       onPointerCancel={handlePointerEnd}
+      onSelect={scheduleSelectionCommit}
     >
       <div className="flex min-h-full justify-center p-4 sm:p-6">
         <div

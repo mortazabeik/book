@@ -257,7 +257,6 @@ function ReaderShell() {
         } else {
           setFloatCard(null);
         }
-        window.getSelection()?.removeAllRanges();
       } catch {
         setError("Translation failed. Please try again.");
       } finally {
