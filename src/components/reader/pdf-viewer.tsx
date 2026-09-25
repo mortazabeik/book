@@ -423,7 +423,10 @@ export function PdfViewer({
   {translatedBlocks?.map((block, index) => {
   const blockWidth = Math.max(block.rect.width, 24);
   const originalFontSize = Math.max(block.fontSize, 10);
-  const fittedFontSize = originalFontSize;
+  const fittedFontSize = Math.max(
+    7,
+    Math.min(originalFontSize, blockWidth / Math.max(block.translation.length * 0.56, 1)),
+  );
   return (
   <div
   key={`${index}-${block.text.slice(0, 12)}`}
@@ -432,7 +435,7 @@ export function PdfViewer({
               aria-label="Translated paragraph"
               style={{
                 left: block.rect.left,
-                top: block.rect.top,
+                top: block.rect.top - fittedFontSize * 0.5,
   width: blockWidth,
   minHeight: fittedFontSize * 1.35,
   fontSize: fittedFontSize,

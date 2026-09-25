@@ -283,8 +283,8 @@
   background: color-mix(in srgb, var(--paper) 94%, var(--accent));
   color: var(--fg);
   line-height: 1.35;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow-wrap: normal;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent);
   user-select: text;
 }
