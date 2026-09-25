@@ -33,6 +33,7 @@ import {
   useSettings,
 } from "@/lib/store";
 import { translateText } from "@/lib/translate";
+import { synthesizeSpeech } from "@/lib/edge-tts";
 import { cn } from "@/lib/utils";
 import {
   PdfViewer,
@@ -143,26 +144,23 @@ function ReaderShell() {
     };
   }, [pdfSource, setPdfSource]);
 
-  const speakText = useCallback((text: string, language: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      setSpeechNotice("خواندن صوتی در این مرورگر پشتیبانی نمی‌شود.");
-      return;
+  const speakText = useCallback(async (text: string, language: string) => {
+    try {
+      const result = await synthesizeSpeech({ data: { text, language } });
+      if (!result.ok) {
+        setSpeechNotice(result.error);
+        return;
+      }
+      document.querySelector<HTMLAudioElement>("audio[data-edge-tts]")?.pause();
+      const audio = new Audio(result.audio);
+      audio.dataset.edgeTts = "true";
+      audio.onended = () => audio.remove();
+      document.body.appendChild(audio);
+      await audio.play();
+      setSpeechNotice(null);
+    } catch {
+      setSpeechNotice("خواندن متن با Edge TTS انجام نشد. دوباره تلاش کنید.");
     }
-    const voices = window.speechSynthesis.getVoices();
-    const voice = voices.find((item) => item.lang.toLowerCase().startsWith(language.toLowerCase()));
-    if (!voice) {
-      setSpeechNotice(language.toLowerCase().startsWith("fa")
-        ? "صدای فارسی در Web Speech API موجود نیست؛ برای صدای فارسی می‌توانید از مدل Mana-Persian-Piper استفاده کنید."
-        : `زبان ${language} برای خواندن صوتی پشتیبانی نمی‌شود.`);
-      return;
-    }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.voice = voice;
-    utterance.lang = voice.lang;
-    utterance.rate = 0.95;
-    window.speechSynthesis.speak(utterance);
-    setSpeechNotice(null);
   }, []);
 
   useEffect(() => {
