@@ -402,7 +402,7 @@ function ReaderShell() {
           <img
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Morio%20book-dark%20mod-YFq92plZKjHgqOzYtNJeFjEFHNHdeQ.png"
             alt="Morio Book"
-            className="h-9 w-auto max-w-36 object-contain"
+            className="h-8 w-auto max-w-[7.5rem] object-contain sm:h-9 sm:max-w-36"
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[11px] font-medium text-white">
@@ -608,7 +608,7 @@ function ReaderShell() {
             });
           }}
           translatedBlocks={translatedBlocks}
-          className="min-h-0 min-w-0 flex-1 max-md:flex-[1.2]"
+          className="min-h-[min(24rem,58dvh)] min-w-0 flex-1 max-md:flex-[2]"
         />
         {split ? (
           <TranslatePanel
@@ -616,7 +616,7 @@ function ReaderShell() {
             loading={loading}
             error={error}
             history={history}
-            className="min-h-0 shrink-0 max-md:max-h-[38%] md:w-80 md:max-w-[30vw]"
+            className="min-h-0 shrink-0 max-md:max-h-[28%] md:w-80 md:max-w-[30vw]"
           />
         ) : null}
       </div>
