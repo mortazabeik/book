@@ -7,7 +7,7 @@ const requestSchema = z.object({
 });
 
 const voices: Record<string, string> = {
-  fa: "fa-IR-DilaraNeural",
+  fa: "fa-IR-FaridNeural",
   en: "en-US-AriaNeural",
   de: "de-DE-KatjaNeural",
   fr: "fr-FR-DeniseNeural",
@@ -25,6 +25,16 @@ function getVoice(language: string) {
   const key = language.toLowerCase().split(/[-_]/)[0];
   return voices[key];
 }
+
+export const detectSpeechLanguage = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ text: z.string().trim().min(1).max(12000) }))
+  .handler(async ({ data }) => {
+    const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&dt=ld&q=${encodeURIComponent(data.text)}`);
+    if (!response.ok) return { ok: false as const, error: "تشخیص زبان انجام نشد." };
+    const payload = await response.json() as unknown[];
+    const detected = typeof payload[2] === "string" ? payload[2] : null;
+    return detected ? { ok: true as const, language: detected } : { ok: false as const, error: "زبان متن تشخیص داده نشد." };
+  });
 
 export const synthesizeSpeech = createServerFn({ method: "POST" })
   .inputValidator(requestSchema)

@@ -33,7 +33,7 @@ import {
   useSettings,
 } from "@/lib/store";
 import { translateText } from "@/lib/translate";
-import { synthesizeSpeech } from "@/lib/edge-tts";
+import { detectSpeechLanguage, synthesizeSpeech } from "@/lib/edge-tts";
 import { cn } from "@/lib/utils";
 import {
   PdfViewer,
@@ -84,6 +84,8 @@ function ReaderShell() {
   const [showBtn, setShowBtn] = useState(false);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [speechNotice, setSpeechNotice] = useState<string | null>(null);
+  const [audioSrc, setAudioSrc] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [btnPos, setBtnPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -147,21 +149,29 @@ function ReaderShell() {
 
   const speakText = useCallback(async (text: string, language: string, paragraphs?: string[]) => {
     try {
-      document.querySelector<HTMLAudioElement>("audio[data-edge-tts]")?.pause();
+      const detectedLanguage = language === "auto"
+        ? await detectSpeechLanguage({ data: { text } })
+        : { ok: true as const, language };
+      if (!detectedLanguage.ok) {
+        setSpeechNotice(detectedLanguage.error);
+        return;
+      }
+      audioRef.current?.pause();
       for (const paragraph of paragraphs?.length ? paragraphs : [text]) {
         const cleanText = paragraph.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
         if (!cleanText) continue;
-          const result = await synthesizeSpeech({ data: { text: cleanText, language } });
+          const result = await synthesizeSpeech({ data: { text: cleanText, language: detectedLanguage.language } });
         if ("error" in result) {
           setSpeechNotice(result.error ?? `زبان ${language} برای خواندن صوتی پشتیبانی نمی‌شود.`);
           return;
         }
         await new Promise<void>((resolve, reject) => {
-          const audio = new Audio(result.audio);
-          audio.dataset.edgeTts = "true";
-          audio.onended = () => { audio.remove(); resolve(); };
-          audio.onerror = () => { audio.remove(); reject(new Error("Audio playback failed")); };
-          document.body.appendChild(audio);
+          const audio = audioRef.current;
+          if (!audio) return reject(new Error("Audio player unavailable"));
+          setAudioSrc(result.audio);
+          audio.src = result.audio;
+          audio.onended = () => resolve();
+          audio.onerror = () => reject(new Error("Audio playback failed"));
           void audio.play().catch(reject);
         });
       }
@@ -687,8 +697,17 @@ function ReaderShell() {
         }}
       />
 
+      {audioSrc ? (
+        <audio
+          ref={audioRef}
+          controls
+          src={audioSrc}
+          aria-label="Audio playback"
+          className="fixed bottom-4 left-1/2 z-50 h-10 w-[min(92vw,28rem)] -translate-x-1/2 rounded-xl shadow-[var(--shadow-float)]"
+        />
+      ) : null}
       {speechNotice ? (
-        <div role="status" aria-live="polite" className="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-border bg-elevated/75 px-3.5 py-2.5 text-xs text-fg shadow-[var(--shadow-float)] backdrop-blur-xl">
+        <div role="status" aria-live="polite" className="pointer-events-none fixed bottom-16 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-border bg-elevated/75 px-3.5 py-2.5 text-xs text-fg shadow-[var(--shadow-float)] backdrop-blur-xl">
           {speechNotice}
         </div>
       ) : null}
