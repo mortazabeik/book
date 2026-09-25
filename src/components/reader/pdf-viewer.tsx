@@ -410,7 +410,7 @@ export function PdfViewer({
       <div className="flex min-h-full justify-center p-4 sm:p-6">
         <div
           ref={pageRef}
-          className="pdf-page relative bg-paper shadow-[var(--shadow-page)]"
+          className={cn("pdf-page relative bg-paper shadow-[var(--shadow-page)]", pdfDarkMode && "pdf-page-dark")}
           style={{
             width: pageSize.width,
             height: pageSize.height,
