@@ -151,12 +151,9 @@ function ReaderShell() {
       for (const paragraph of paragraphs?.length ? paragraphs : [text]) {
         const cleanText = paragraph.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
         if (!cleanText) continue;
-        const desktop = (window as Window & { electronAPI?: { piperSpeak?: (text: string) => Promise<{ audio: string }> } }).electronAPI;
-        const result = language.toLowerCase().startsWith("fa") && desktop?.piperSpeak
-          ? await desktop.piperSpeak(cleanText)
-          : await synthesizeSpeech({ data: { text: cleanText, language } });
+          const result = await synthesizeSpeech({ data: { text: cleanText, language } });
         if ("error" in result) {
-          setSpeechNotice(result.error);
+          setSpeechNotice(result.error ?? `زبان ${language} برای خواندن صوتی پشتیبانی نمی‌شود.`);
           return;
         }
         await new Promise<void>((resolve, reject) => {

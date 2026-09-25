@@ -4,7 +4,6 @@ const electronAPI = {
   minimize: () => ipcRenderer.invoke("window:minimize"),
   maximize: () => ipcRenderer.invoke("window:toggle-maximize"),
   close: () => ipcRenderer.invoke("window:close"),
-  piperSpeak: (text) => ipcRenderer.invoke("piper:speak", text),
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);
