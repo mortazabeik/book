@@ -570,7 +570,7 @@ function ReaderShell() {
         ) : null}
       </header>
 
-      <div className="fixed inset-x-1 bottom-2 z-50 grid grid-cols-7 items-center gap-0 rounded-2xl border border-white/10 bg-[var(--header)]/95 p-1.5 text-white shadow-[var(--shadow-float)] backdrop-blur-xl sm:hidden" dir="ltr">
+      <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-7 items-center gap-0 border-t border-white/10 bg-[var(--header)] p-1 text-white sm:hidden" dir="ltr">
         <Button className="w-full min-w-0" variant="ghost" size="icon-sm" aria-label="Previous page" disabled={!canPrev} onClick={() => setPage(page - 1)}><ChevronLeft className="size-4" /></Button>
         <label className="flex w-full min-w-0 items-center justify-center gap-0.5 text-xs tabular-nums text-muted">
           <span className="sr-only">Go to page</span>
@@ -583,7 +583,7 @@ function ReaderShell() {
         <Button className="w-full min-w-0" variant="ghost" size="icon-sm" aria-label="Zoom in" onClick={() => setZoom(zoom + 0.1)}><Plus className="size-4" /></Button>
         <Button className="w-full min-w-0" variant="ghost" size="icon-sm" aria-label="Open mobile tools" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)}><Menu className="size-4" /></Button>
         {mobileMenuOpen ? (
-          <div className="absolute inset-x-1 bottom-full mb-2 grid grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-[var(--header)]/95 p-2 shadow-[var(--shadow-float)] backdrop-blur-xl">
+          <div className="fixed inset-x-2 bottom-14 z-[55] grid grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-[var(--header)]/95 p-2 shadow-[var(--shadow-float)] backdrop-blur-xl">
             <Button variant="ghost" size="icon-sm" aria-label={translatedBlocks ? "Restore original" : "Translate page"} disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)} onClick={() => void translateWholePage()}>{pageTranslating ? <LoaderCircle className="size-4 animate-spin" /> : translatedPageText ? <RotateCcw className="size-4" /> : <Languages className="size-4" />}</Button>
             <Button variant="ghost" size="icon-sm" aria-label="Open another PDF" onClick={() => fileRef.current?.click()}><FileUp className="size-4" /></Button>
             <Button variant="ghost" size="icon-sm" aria-label={theme === "dark" ? "Light mode" : "Dark mode"} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>
