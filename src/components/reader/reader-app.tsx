@@ -398,9 +398,30 @@ function ReaderShell() {
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <span className="min-w-16 px-1 text-center text-xs tabular-nums text-muted">
-            {page} / {numPages}
-          </span>
+          <label className="flex min-w-20 items-center justify-center gap-1 px-1 text-xs tabular-nums text-muted">
+            <span className="sr-only">Go to page</span>
+            <input
+              type="number"
+              min={1}
+              max={Math.max(numPages, 1)}
+              value={page}
+              aria-label="Current page"
+              className="w-10 bg-transparent text-center text-xs text-fg outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              onChange={(event) => {
+                const nextPage = Number(event.target.value);
+                if (Number.isFinite(nextPage)) setPage(Math.min(Math.max(1, nextPage), Math.max(numPages, 1)));
+              }}
+              onKeyDown={(event) => {
+                if ((event.nativeEvent as KeyboardEvent).isComposing || event.keyCode === 229) return;
+                if (event.key === "Enter") event.currentTarget.blur();
+              }}
+              onBlur={(event) => {
+                const nextPage = Number(event.currentTarget.value);
+                setPage(Number.isFinite(nextPage) ? Math.min(Math.max(1, nextPage), Math.max(numPages, 1)) : 1);
+              }}
+            />
+            <span aria-hidden="true">/ {numPages}</span>
+          </label>
           <Button
             variant="ghost"
             size="icon-sm"
