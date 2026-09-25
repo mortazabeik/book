@@ -908,11 +908,10 @@ function SettingsDialog({
 
             <section className="space-y-3">
               <h3 className="text-xs font-medium text-muted">Translation mode</h3>
-              <div className="grid gap-2 md:grid-cols-2">
-                <div className="hidden md:block">
-                  <ModeCard
-                    active={mode === "split"}
-                    title="70 / 30 split"
+              <div className="hidden gap-2 md:grid md:grid-cols-2">
+                <ModeCard
+                  active={mode === "split"}
+                  title="70 / 30 split"
                   body="Book on the larger side, translation in the side panel."
                   onClick={() => setMode("split")}
                 />
@@ -922,7 +921,6 @@ function SettingsDialog({
                   body="Translation appears in a small window beside the selection."
                   onClick={() => setMode("float")}
                 />
-                </div>
               </div>
             </section>
 
