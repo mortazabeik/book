@@ -570,9 +570,9 @@ function ReaderShell() {
 
       <div className="fixed inset-x-2 bottom-14 z-50 flex items-center gap-0 rounded-2xl border border-white/10 bg-[var(--header)]/95 p-1.5 text-white shadow-[var(--shadow-float)] backdrop-blur-xl sm:hidden" dir="ltr">
         <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Previous page" disabled={!canPrev} onClick={() => setPage(page - 1)}><ChevronLeft className="size-4" /></Button>
-        <label className="flex w-full min-w-0 items-center justify-center gap-0.5 text-xs tabular-nums text-muted"><span className="sr-only">Go to page</span><input type="number" min={1} max={Math.max(numPages, 1)} value={pageInput} aria-label="Current page" className="w-8 bg-transparent text-center text-xs text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" onChange={(event) => { const nextValue = event.target.value; const previousValue = pageInput; setPageInput(nextValue); if (nextValue.length > previousValue.length) { const nextPage = Number(nextValue); if (Number.isFinite(nextPage)) setPage(Math.min(Math.max(1, nextPage), Math.max(numPages, 1))); } }} onBlur={(event) => { const nextPage = Number(event.currentTarget.value); const normalized = Number.isFinite(nextPage) ? Math.min(Math.max(1, nextPage), Math.max(numPages, 1)) : page; setPage(normalized); setPageInput(String(normalized)); }} /><span aria-hidden="true">/ {numPages}</span></label>
+        <label className="flex min-w-0 flex-[2] items-center justify-center gap-1 text-xs tabular-nums text-muted"><span className="sr-only">Go to page</span><input type="number" min={1} max={Math.max(numPages, 1)} value={pageInput} aria-label="Current page" className="w-8 bg-transparent text-center text-xs text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" onChange={(event) => { const nextValue = event.target.value; const previousValue = pageInput; setPageInput(nextValue); if (nextValue.length > previousValue.length) { const nextPage = Number(nextValue); if (Number.isFinite(nextPage)) setPage(Math.min(Math.max(1, nextPage), Math.max(numPages, 1))); } }} onBlur={(event) => { const nextPage = Number(event.currentTarget.value); const normalized = Number.isFinite(nextPage) ? Math.min(Math.max(1, nextPage), Math.max(numPages, 1)) : page; setPage(normalized); setPageInput(String(normalized)); }} /><span aria-hidden="true">/ {numPages}</span></label>
         <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Next page" disabled={!canNext} onClick={() => setPage(page + 1)}><ChevronRight className="size-4" /></Button>
-        <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Zoom out" onClick={() => setZoom(zoom - 0.1)}><Minus className="size-4" /></Button><span className="min-w-0 text-center text-[10px] tabular-nums text-muted">{Math.round(zoom * 100)}%</span><Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Zoom in" onClick={() => setZoom(zoom + 0.1)}><Plus className="size-4" /></Button>
+        <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Zoom out" onClick={() => setZoom(zoom - 0.1)}><Minus className="size-4" /></Button><span className="w-10 shrink-0 text-center text-[10px] tabular-nums text-muted">{Math.round(zoom * 100)}%</span><Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label="Zoom in" onClick={() => setZoom(zoom + 0.1)}><Plus className="size-4" /></Button>
       </div>
       <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-1 border-t border-white/10 bg-[var(--header)] p-1 text-white sm:hidden" dir="ltr">
         <Button className="min-w-0 flex-1" variant="ghost" size="icon-sm" aria-label={translatedBlocks ? "Restore original" : "Translate page"} disabled={pageTranslating || (!translatedBlocks && !pageBlocks.length)} onClick={() => void translateWholePage()}>{pageTranslating ? <LoaderCircle className="size-4 animate-spin" /> : translatedPageText ? <RotateCcw className="size-4" /> : <Languages className="size-4" />}</Button>
@@ -879,7 +879,7 @@ function SettingsDialog({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-bg/70" />
         <Dialog.Content
           data-settings-root=""
-          className="fixed start-0 top-0 z-50 flex h-dvh w-full max-w-md flex-col bg-elevated shadow-[var(--shadow-float)] outline-none"
+          className="fixed start-0 top-0 z-50 flex h-dvh w-full max-w-md flex-col overflow-hidden bg-elevated shadow-[var(--shadow-float)] outline-none"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <Dialog.Title className="text-sm font-medium">Settings</Dialog.Title>
@@ -908,7 +908,7 @@ function SettingsDialog({
 
             <section className="space-y-3">
               <h3 className="text-xs font-medium text-muted">Translation mode</h3>
-              <div className="grid gap-2">
+              <div className="grid gap-2 md:grid-cols-2">
                 <div className="hidden md:block">
                   <ModeCard
                     active={mode === "split"}
