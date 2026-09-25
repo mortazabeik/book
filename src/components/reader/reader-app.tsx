@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Settings2,
   Sun,
+  Volume2,
   X,
   ChevronDown,
 } from "lucide-react";
@@ -81,6 +82,7 @@ function ReaderShell() {
   const [pending, setPending] = useState<SelectionPayload | null>(null);
   const [showBtn, setShowBtn] = useState(false);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [speechNotice, setSpeechNotice] = useState<string | null>(null);
   const [btnPos, setBtnPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -103,6 +105,7 @@ function ReaderShell() {
   const [floatCard, setFloatCard] = useState<{
     x: number;
     y: number;
+    source: string;
     text: string;
   } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -139,6 +142,34 @@ function ReaderShell() {
       alive = false;
     };
   }, [pdfSource, setPdfSource]);
+
+  const speakText = useCallback((text: string, language: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setSpeechNotice("خواندن صوتی در این مرورگر پشتیبانی نمی‌شود.");
+      return;
+    }
+    const voices = window.speechSynthesis.getVoices();
+    const voice = voices.find((item) => item.lang.toLowerCase().startsWith(language.toLowerCase()));
+    if (!voice) {
+      setSpeechNotice(language.toLowerCase().startsWith("fa")
+        ? "صدای فارسی در Web Speech API موجود نیست؛ برای صدای فارسی می‌توانید از مدل Mana-Persian-Piper استفاده کنید."
+        : `زبان ${language} برای خواندن صوتی پشتیبانی نمی‌شود.`);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+    setSpeechNotice(null);
+  }, []);
+
+  useEffect(() => {
+    if (!speechNotice) return;
+    const timeout = window.setTimeout(() => setSpeechNotice(null), 3600);
+    return () => window.clearTimeout(timeout);
+  }, [speechNotice]);
 
   const dismissTransient = useCallback(() => {
     setShowBtn(false);
@@ -217,6 +248,7 @@ function ReaderShell() {
           setFloatCard({
             x: payload.mouseX,
             y: payload.mouseY,
+            source: payload.text,
             text: res.text,
           });
         } else {
@@ -597,14 +629,22 @@ function ReaderShell() {
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-[11px] font-medium text-muted">Translation</p>
-            <button
-              type="button"
-              className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-fg/6 hover:text-fg"
-              aria-label="Close"
-              onClick={dismissTransient}
-            >
-              <X className="size-3.5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button type="button" className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-fg/6 hover:text-fg" aria-label="Read original text" onClick={() => speakText(floatCard.source, sourceLang)}>
+                <Volume2 className="size-3.5" />
+              </button>
+              <button type="button" className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-fg/6 hover:text-fg" aria-label="Read translated text" onClick={() => speakText(floatCard.text, targetLang)}>
+                <Languages className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-fg/6 hover:text-fg"
+                aria-label="Close"
+                onClick={dismissTransient}
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
           </div>
           <p className="text-pretty text-sm leading-relaxed">{floatCard.text}</p>
         </aside>
@@ -630,6 +670,12 @@ function ReaderShell() {
           event.target.value = "";
         }}
       />
+
+      {speechNotice ? (
+        <div role="status" aria-live="polite" className="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-border bg-elevated/75 px-3.5 py-2.5 text-xs text-fg shadow-[var(--shadow-float)] backdrop-blur-xl">
+          {speechNotice}
+        </div>
+      ) : null}
 
       {copyDialogOpen ? (
         <div
