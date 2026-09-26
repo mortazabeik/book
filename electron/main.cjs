@@ -1,10 +1,33 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const path = require("node:path");
 const { startServer } = require("./server.cjs");
+const { createWorker } = require("tesseract.js");
+const engData = require("@tesseract.js-data/eng");
+const fasData = require("@tesseract.js-data/fas");
+const fs = require("node:fs");
+
+let ocrWorkerPromise;
+async function getOcrWorker() {
+  const dataDir = path.join(app.getPath("userData"), "ocr-data");
+  fs.mkdirSync(dataDir, { recursive: true });
+  for (const [source, name] of [[engData.langPath, "eng"], [fasData.langPath, "fas"]]) {
+    const target = path.join(dataDir, `${name}.traineddata.gz`);
+    if (!fs.existsSync(target)) fs.copyFileSync(path.join(source, `${name}.traineddata.gz`), target);
+  }
+  ocrWorkerPromise ??= createWorker("eng+fas", 1, { langPath: dataDir, gzip: true, cachePath: path.join(app.getPath("userData"), "ocr-cache") });
+  return ocrWorkerPromise;
+}
 
 app.commandLine.appendSwitch("enable-features", "CSSBackdropFilter");
 
 let localServer;
+
+ipcMain.handle("ocr:recognize", async (_event, imageDataUrl) => {
+  if (typeof imageDataUrl !== "string" || !imageDataUrl.startsWith("data:image/")) throw new Error("Invalid OCR image");
+  const worker = await getOcrWorker();
+  const { data } = await worker.recognize(imageDataUrl);
+  return data.text.trim();
+});
 
 ipcMain.handle("window:minimize", (event) => {
   BrowserWindow.fromWebContents(event.sender)?.minimize();

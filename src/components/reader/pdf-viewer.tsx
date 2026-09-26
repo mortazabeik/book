@@ -323,6 +323,22 @@ export function PdfViewer({
         }
         pendingLineBreak = "hasEOL" in item && item.hasEOL === true;
       }
+      const desktopApi = typeof window !== "undefined"
+        ? (window as Window & { morioDesktop?: { isDesktop?: boolean; recognizeText?: (imageDataUrl: string) => Promise<string> } }).morioDesktop
+        : undefined;
+      if (!blocks.length && desktopApi?.isDesktop && desktopApi.recognizeText) {
+        try {
+          const ocrText = (await desktopApi.recognizeText(canvas.toDataURL("image/png"))).replace(/\s+/g, " ").trim();
+          if (ocrText) {
+            const rect = { left: 24, top: 24, width: Math.max(40, viewport.width - 48), height: Math.max(32, viewport.height - 48) };
+            blocks.push({ text: ocrText, rect, parts: [{ text: ocrText, rect }], paragraphSignature: "ocr", fontSize: Math.max(14, viewport.width / 48), fontFamily: "sans-serif", fontWeight: "400", fontStyle: "normal", color: "currentColor" });
+            onPageTextRef.current?.(ocrText);
+            onTextItemsRef.current?.([ocrText]);
+          }
+        } catch (ocrError) {
+          console.warn("[v0] Offline OCR unavailable", ocrError);
+        }
+      }
       onTextBlocksRef.current?.(blocks);
       textLayerDiv.innerHTML = "";
       textLayerDiv.style.width = `${viewport.width}px`;

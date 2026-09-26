@@ -4,6 +4,7 @@ const electronAPI = {
   minimize: () => ipcRenderer.invoke("window:minimize"),
   maximize: () => ipcRenderer.invoke("window:toggle-maximize"),
   close: () => ipcRenderer.invoke("window:close"),
+  recognizeText: (imageDataUrl) => ipcRenderer.invoke("ocr:recognize", imageDataUrl),
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);
